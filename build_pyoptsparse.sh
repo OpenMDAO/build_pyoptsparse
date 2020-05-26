@@ -226,7 +226,7 @@ build_pyoptsparse() {
 	echo these variables before building it yourself:
 	echo
 	echo export IPOPT_INC=$PREFIX/include/coin-or
-    echo export IPOPT_LIB=$PREFIX/lib
+	echo export IPOPT_LIB=$PREFIX/lib
 	echo -----------------------------------------------------
     fi
 }
