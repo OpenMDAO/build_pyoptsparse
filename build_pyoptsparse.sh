@@ -11,7 +11,7 @@ HSL_VER=2014.01.17
 PREFIX=$HOME/ipopt
 LINEAR_SOLVER=MUMPS
 BUILD_PYOPTSPARSE=1
-PYOPTSPARSE_BRANCH=v1.2
+PYOPTSPARSE_BRANCH=v2.1.0
 COMPILER_SUITE=GNU
 INCLUDE_SNOPT=0
 SNOPT_DIR=SNOPT
@@ -189,17 +189,28 @@ build_pyoptsparse() {
     bkp_dir pyoptsparse
     git clone -b "$PYOPTSPARSE_BRANCH" https://github.com/mdolab/pyoptsparse.git
 
-    case $patch_type in
-        mumps)
-            sed -i -e "s/coinhsl/coinmumps', 'coinmetis/" pyoptsparse/pyoptsparse/pyIPOPT/setup.py
-            ;;
-        pardiso)
-            sed -i -e "s/'coinhsl', //;s/, 'blas', 'lapack'//" pyoptsparse/pyoptsparse/pyIPOPT/setup.py
-            ;;
-    esac
+    if [ "$PYOPTSPARSE_BRANCH" = "v1.2" ]; then
+        case $patch_type in
+            mumps)
+                sed -i -e "s/coinhsl/coinmumps', 'coinmetis/" pyoptsparse/pyoptsparse/pyIPOPT/setup.py
+                ;;
+            pardiso)
+                sed -i -e "s/'coinhsl', //;s/, 'blas', 'lapack'//" pyoptsparse/pyoptsparse/pyIPOPT/setup.py
+                ;;
+        esac
+    elif [ "$PYOPTSPARSE_BRANCH" = "v2.1.0" ]; then
+        case $patch_type in
+            mumps)
+                sed -i -e 's/coinhsl/coinmumps", "coinmetis/' pyoptsparse/pyoptsparse/pyIPOPT/setup.py
+                ;;
+            pardiso)
+                sed -i -e 's/"coinhsl", //;s/, "blas", "lapack"//' pyoptsparse/pyoptsparse/pyIPOPT/setup.py
+                ;;
+        esac
+    fi
 
     if [ $INCLUDE_SNOPT = 1 ]; then
-        cp -a "${SNOPT_DIR}/." ./pyoptsparse/pyoptsparse/pySNOPT/source/.
+        rsync -a --exclude snopth.f "${SNOPT_DIR}/" ./pyoptsparse/pyoptsparse/pySNOPT/source/
     fi
 
     if [ $BUILD_PYOPTSPARSE = 1 ]; then
@@ -215,7 +226,7 @@ build_pyoptsparse() {
 	echo these variables before building it yourself:
 	echo
 	echo export IPOPT_INC=$PREFIX/include/coin-or
-        echo export IPOPT_LIB=$PREFIX/lib
+	echo export IPOPT_LIB=$PREFIX/lib
 	echo -----------------------------------------------------
     fi
 }
@@ -229,7 +240,9 @@ install_with_mumps() {
     pushd ThirdParty-Mumps
     ./get.Mumps
     ./configure --with-metis --with-metis-lflags="-L${PREFIX}/lib -lcoinmetis" \
-       --with-metis-cflags="-I${PREFIX}/include" --prefix=$PREFIX
+       --with-metis-cflags="-I${PREFIX}/include -I${PREFIX}/include/coin-or -I${PREFIX}/include/coin-or/metis" \
+       --prefix=$PREFIX CFLAGS="-I${PREFIX}/include -I${PREFIX}/include/coin-or -I${PREFIX}/include/coin-or/metis" \
+       FCFLAGS="-I${PREFIX}/include -I${PREFIX}/include/coin-or -I${PREFIX}/include/coin-or/metis"
     make
     make install
     popd
