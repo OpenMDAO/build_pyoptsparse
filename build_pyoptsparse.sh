@@ -15,6 +15,7 @@ PYOPTSPARSE_BRANCH=v2.1.0
 COMPILER_SUITE=GNU
 INCLUDE_SNOPT=0
 SNOPT_DIR=SNOPT
+INCLUDE_PAROPT=0
 BUILD_TIME=`date +%s`
 
 usage() {
@@ -34,6 +35,7 @@ $0 [-b branch] [-h] [-l linear_solver] [-n] [-p prefix] [-s snopt_dir]
                       this dir, the build may fail. If it does, rename
                       the directory or removing the old versions.
     -s snopt_dir      Include SNOPT from snopt_dir. Default: no SNOPT
+    -a                Include ParOpt. Default: no ParOpt
 
 NOTES:
     If HSL is selected as the linear solver, the
@@ -51,7 +53,7 @@ USAGE
     exit 3
 }
 
-while getopts ":b:hl:np:s:" opt; do
+while getopts ":b:hl:np:s:a:" opt; do
     case ${opt} in
         b)
             PYOPTSPARSE_BRANCH="$OPTARG" ;;
@@ -82,6 +84,8 @@ while getopts ":b:hl:np:s:" opt; do
                 exit 1
             fi
             ;;
+        a)
+            INCLUDE_PAROPT=1 ;;
         \?)
             echo "Unrecognized option -${OPTARG} specified."
             usage ;;
@@ -183,6 +187,18 @@ install_ipopt() {
     popd
 }
 
+install_paropt() {
+    bkp_dir paropt
+
+    git clone https://github.com/gjkennedy/paropt
+    pushd paropt
+    cp Makefile.in.info Makefile.in
+    make PAROPT_DIR=$PWD
+    export CFLAGS='-stdlib=libc++'
+    python setup.py install
+    popd
+ }
+
 build_pyoptsparse() {
     patch_type=$1
 
@@ -211,6 +227,10 @@ build_pyoptsparse() {
 
     if [ $INCLUDE_SNOPT = 1 ]; then
         rsync -a --exclude snopth.f "${SNOPT_DIR}/" ./pyoptsparse/pyoptsparse/pySNOPT/source/
+    fi
+
+    if [ "$PYOPTSPARSE_BRANCH" = "v2.1.0" ] && [ $INCLUDE_PAROPT = 1 ] ; then
+      install_paropt
     fi
 
     if [ $BUILD_PYOPTSPARSE = 1 ]; then
