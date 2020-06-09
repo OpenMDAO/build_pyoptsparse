@@ -53,7 +53,7 @@ USAGE
     exit 3
 }
 
-while getopts ":b:hl:np:s:a:" opt; do
+while getopts ":b:hl:np:s:a" opt; do
     case ${opt} in
         b)
             PYOPTSPARSE_BRANCH="$OPTARG" ;;
@@ -194,8 +194,7 @@ install_paropt() {
     pushd paropt
     cp Makefile.in.info Makefile.in
     make PAROPT_DIR=$PWD
-    export CFLAGS='-stdlib=libc++'
-    python setup.py install
+    CFLAGS='-stdlib=libc++' python setup.py install
     popd
  }
 
