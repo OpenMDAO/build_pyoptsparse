@@ -189,6 +189,8 @@ install_ipopt() {
 
 install_paropt() {
     bkp_dir paropt
+    conda install -c anaconda gxx_linux-64 --yes;
+    conda install -c anaconda gfortran_linux-64 --yes;
 
     git clone https://github.com/gjkennedy/paropt
     pushd paropt
