@@ -1,4 +1,4 @@
-#!/usr/bin/env bash -x
+#!/usr/bin/env bash
 # Finds/downloads and unpacks pyOptSparse, IPOPT, and deps source
 # archives to current directory. Chdirs to each directory in turn
 # to build and install each package (except for pyOptSparse if
@@ -189,6 +189,7 @@ install_ipopt() {
 
 install_paropt() {
     bkp_dir paropt
+    set -x
     echo ">>> Installing gxx_linux-64 and gfortran_linux-64";
     conda install -v -c conda-forge gxx_linux-64 --yes;
     conda install -v -c conda-forge gfortran_linux-64;
