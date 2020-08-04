@@ -200,7 +200,8 @@ install_paropt() {
     pushd paropt
     cp Makefile.in.info Makefile.in
     make PAROPT_DIR=$PWD
-    CFLAGS='-stdlib=libc++' python setup.py install
+    # CFLAGS='-stdlib=libc++' python setup.py install
+    python setup.py install
     popd
  }
 
