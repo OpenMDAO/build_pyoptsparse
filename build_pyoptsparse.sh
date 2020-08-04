@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash -x
 # Finds/downloads and unpacks pyOptSparse, IPOPT, and deps source
 # archives to current directory. Chdirs to each directory in turn
 # to build and install each package (except for pyOptSparse if
