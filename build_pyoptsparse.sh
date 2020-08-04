@@ -11,7 +11,7 @@ HSL_VER=2014.01.17
 PREFIX=$HOME/ipopt
 LINEAR_SOLVER=MUMPS
 BUILD_PYOPTSPARSE=1
-PYOPTSPARSE_BRANCH=v2.1.0
+PYOPTSPARSE_BRANCH=v2.1.3
 COMPILER_SUITE=GNU
 INCLUDE_SNOPT=0
 SNOPT_DIR=SNOPT
@@ -220,7 +220,7 @@ build_pyoptsparse() {
                 sed -i -e "s/'coinhsl', //;s/, 'blas', 'lapack'//" pyoptsparse/pyoptsparse/pyIPOPT/setup.py
                 ;;
         esac
-    elif [ "$PYOPTSPARSE_BRANCH" = "v2.1.0" ]; then
+    elif [ "$PYOPTSPARSE_BRANCH" = "v2.1.3" ]; then
         case $patch_type in
             mumps)
                 sed -i -e 's/coinhsl/coinmumps", "coinmetis/' pyoptsparse/pyoptsparse/pyIPOPT/setup.py
@@ -235,7 +235,7 @@ build_pyoptsparse() {
         rsync -a --exclude snopth.f "${SNOPT_DIR}/" ./pyoptsparse/pyoptsparse/pySNOPT/source/
     fi
 
-    if [ "$PYOPTSPARSE_BRANCH" = "v2.1.0" ] && [ $INCLUDE_PAROPT = 1 ] ; then
+    if [ "$PYOPTSPARSE_BRANCH" = "v2.1.3" ] && [ $INCLUDE_PAROPT = 1 ] ; then
     echo ">>> Installing paropt";
       install_paropt
     fi
