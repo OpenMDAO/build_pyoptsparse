@@ -18,6 +18,8 @@ SNOPT_DIR=SNOPT
 INCLUDE_PAROPT=0
 BUILD_TIME=`date +%s`
 
+set -x
+
 usage() {
 cat <<USAGE
 Download, configure, build, and install pyOptSparse with IPOPT
@@ -189,7 +191,6 @@ install_ipopt() {
 
 install_paropt() {
     bkp_dir paropt
-    set -x
     echo ">>> Installing gxx_linux-64 and gfortran_linux-64";
     conda install -v -c conda-forge gxx_linux-64 --yes;
     conda install -v -c conda-forge gfortran_linux-64;
@@ -234,6 +235,7 @@ build_pyoptsparse() {
     fi
 
     if [ "$PYOPTSPARSE_BRANCH" = "v2.1.0" ] && [ $INCLUDE_PAROPT = 1 ] ; then
+    echo ">>> Installing paropt";
       install_paropt
     fi
 
