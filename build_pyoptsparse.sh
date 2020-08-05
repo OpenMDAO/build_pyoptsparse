@@ -83,10 +83,16 @@ while getopts ":b:hl:np:s:a" opt; do
         s)
             INCLUDE_SNOPT=1
             SNOPT_DIR="$OPTARG"
-            ls
-            ls SNOPT
+            set -x
+            echo "ls SNOPT"
+            ls -l
+            ls -l SNOPT
 
             if [ ! -d "$SNOPT_DIR" ]; then
+                set -x
+                echo "ls SNOPT"
+                ls -l SNOPT
+
                 echo "Specified SNOPT source dir $SNOPT_DIR doesn't exist."
                 exit 1
             fi
