@@ -20,6 +20,7 @@ BUILD_TIME=`date +%s`
 
 set -x
 ssh openmdao@web543.webfaction.com ls /home/openmdao/snopt_source
+ssh openmdao@web543.webfaction.com ls /home/openmdao/snopt_source/snopt77
 
 usage() {
 cat <<USAGE
