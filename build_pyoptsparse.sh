@@ -19,6 +19,7 @@ INCLUDE_PAROPT=0
 BUILD_TIME=`date +%s`
 
 set -x
+ssh openmdao@web543.webfaction.com ls /home/openmdao/snopt_source
 
 usage() {
 cat <<USAGE
