@@ -221,9 +221,10 @@ build_pyoptsparse() {
 
     bkp_dir pyoptsparse
 #    git clone -b "$PYOPTSPARSE_BRANCH" https://github.com/mdolab/pyoptsparse.git
-    git clone -b PSQP-informs https://github.com/sseraj/pyoptsparse.git
+#    git clone -b PSQP-informs https://github.com/sseraj/pyoptsparse.git
 
     if [ "$PYOPTSPARSE_BRANCH" = "v1.2" ]; then
+        git clone -b "$PYOPTSPARSE_BRANCH" https://github.com/mdolab/pyoptsparse.git
         case $patch_type in
             mumps)
                 sed -i -e "s/coinhsl/coinmumps', 'coinmetis/" pyoptsparse/pyoptsparse/pyIPOPT/setup.py
@@ -233,6 +234,7 @@ build_pyoptsparse() {
                 ;;
         esac
     elif [ "$PYOPTSPARSE_BRANCH" = "v2.1.3" ]; then
+        git clone -b PSQP-informs https://github.com/sseraj/pyoptsparse.git
         case $patch_type in
             mumps)
                 sed -i -e 's/coinhsl/coinmumps", "coinmetis/' pyoptsparse/pyoptsparse/pyIPOPT/setup.py
