@@ -220,7 +220,8 @@ build_pyoptsparse() {
     patch_type=$1
 
     bkp_dir pyoptsparse
-    git clone -b "$PYOPTSPARSE_BRANCH" https://github.com/mdolab/pyoptsparse.git
+#    git clone -b "$PYOPTSPARSE_BRANCH" https://github.com/mdolab/pyoptsparse.git
+    git clone -b PSQP-informs https://github.com/sseraj/pyoptsparse.git
 
     if [ "$PYOPTSPARSE_BRANCH" = "v1.2" ]; then
         case $patch_type in
