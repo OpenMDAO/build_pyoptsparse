@@ -11,7 +11,7 @@ HSL_VER=2014.01.17
 PREFIX=$HOME/ipopt
 LINEAR_SOLVER=MUMPS
 BUILD_PYOPTSPARSE=1
-PYOPTSPARSE_BRANCH=v2.1.0
+PYOPTSPARSE_BRANCH=v2.1.5
 COMPILER_SUITE=GNU
 INCLUDE_SNOPT=0
 SNOPT_DIR=SNOPT
@@ -25,7 +25,7 @@ support and dependencies.
 
 Usage:
 $0 [-b branch] [-h] [-l linear_solver] [-n] [-p prefix] [-s snopt_dir]
-    -b branch         pyOptSparse git branch. Default: v1.2
+    -b branch         pyOptSparse git branch. Default: ${PYOPTSPARSE_BRANCH}
     -h                Display usage and exit.
     -l linear_solver  One of mumps, hsl, or pardiso. Default: mumps
     -n                Prepare, but do NOT build/install pyOptSparse.
@@ -189,12 +189,15 @@ install_ipopt() {
 
 install_paropt() {
     bkp_dir paropt
-
+    conda install -v -c conda-forge gxx_linux-64 --yes;
+    conda install -v -c conda-forge gfortran_linux-64 --yes;
     git clone https://github.com/gjkennedy/paropt
     pushd paropt
     cp Makefile.in.info Makefile.in
     make PAROPT_DIR=$PWD
-    CFLAGS='-stdlib=libc++' python setup.py install
+    # In some cases needed to set this CFLAGS
+    # CFLAGS='-stdlib=libc++' python setup.py install
+    python setup.py install
     popd
  }
 
@@ -213,7 +216,7 @@ build_pyoptsparse() {
                 sed -i -e "s/'coinhsl', //;s/, 'blas', 'lapack'//" pyoptsparse/pyoptsparse/pyIPOPT/setup.py
                 ;;
         esac
-    elif [ "$PYOPTSPARSE_BRANCH" = "v2.1.0" ]; then
+    elif [ "$PYOPTSPARSE_BRANCH" = "v2.1.5" ]; then
         case $patch_type in
             mumps)
                 sed -i -e 's/coinhsl/coinmumps", "coinmetis/' pyoptsparse/pyoptsparse/pyIPOPT/setup.py
@@ -228,7 +231,8 @@ build_pyoptsparse() {
         rsync -a --exclude snopth.f "${SNOPT_DIR}/" ./pyoptsparse/pyoptsparse/pySNOPT/source/
     fi
 
-    if [ "$PYOPTSPARSE_BRANCH" = "v2.1.0" ] && [ $INCLUDE_PAROPT = 1 ] ; then
+    if [ "$PYOPTSPARSE_BRANCH" = "v2.1.5" ] && [ $INCLUDE_PAROPT = 1 ] ; then
+    echo ">>> Installing paropt";
       install_paropt
     fi
 
