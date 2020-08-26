@@ -24,7 +24,7 @@ Download, configure, build, and install pyOptSparse with IPOPT
 support and dependencies.
 
 Usage:
-$0 [-b branch] [-h] [-l linear_solver] [-n] [-p prefix] [-s snopt_dir]
+$0 [-b branch] [-h] [-l linear_solver] [-n] [-p prefix] [-s snopt_dir] [-a]
     -b branch         pyOptSparse git branch. Default: ${PYOPTSPARSE_BRANCH}
     -h                Display usage and exit.
     -l linear_solver  One of mumps, hsl, or pardiso. Default: mumps
