@@ -11,10 +11,11 @@ HSL_VER=2014.01.17
 PREFIX=$HOME/ipopt
 LINEAR_SOLVER=MUMPS
 BUILD_PYOPTSPARSE=1
-PYOPTSPARSE_BRANCH=v1.2
+PYOPTSPARSE_BRANCH=v2.1.5
 COMPILER_SUITE=GNU
 INCLUDE_SNOPT=0
 SNOPT_DIR=SNOPT
+INCLUDE_PAROPT=0
 BUILD_TIME=`date +%s`
 
 usage() {
@@ -23,8 +24,8 @@ Download, configure, build, and install pyOptSparse with IPOPT
 support and dependencies.
 
 Usage:
-$0 [-b branch] [-h] [-l linear_solver] [-n] [-p prefix] [-s snopt_dir]
-    -b branch         pyOptSparse git branch. Default: v1.2
+$0 [-b branch] [-h] [-l linear_solver] [-n] [-p prefix] [-s snopt_dir] [-a]
+    -b branch         pyOptSparse git branch. Default: ${PYOPTSPARSE_BRANCH}
     -h                Display usage and exit.
     -l linear_solver  One of mumps, hsl, or pardiso. Default: mumps
     -n                Prepare, but do NOT build/install pyOptSparse.
@@ -34,6 +35,7 @@ $0 [-b branch] [-h] [-l linear_solver] [-n] [-p prefix] [-s snopt_dir]
                       this dir, the build may fail. If it does, rename
                       the directory or removing the old versions.
     -s snopt_dir      Include SNOPT from snopt_dir. Default: no SNOPT
+    -a                Include ParOpt. Default: no ParOpt
 
 NOTES:
     If HSL is selected as the linear solver, the
@@ -51,7 +53,7 @@ USAGE
     exit 3
 }
 
-while getopts ":b:hl:np:s:" opt; do
+while getopts ":b:hl:np:s:a" opt; do
     case ${opt} in
         b)
             PYOPTSPARSE_BRANCH="$OPTARG" ;;
@@ -82,6 +84,8 @@ while getopts ":b:hl:np:s:" opt; do
                 exit 1
             fi
             ;;
+        a)
+            INCLUDE_PAROPT=1 ;;
         \?)
             echo "Unrecognized option -${OPTARG} specified."
             usage ;;
@@ -183,23 +187,53 @@ install_ipopt() {
     popd
 }
 
+install_paropt() {
+    bkp_dir paropt
+    conda install -v -c conda-forge gxx_linux-64 --yes;
+    conda install -v -c conda-forge gfortran_linux-64 --yes;
+    git clone https://github.com/gjkennedy/paropt
+    pushd paropt
+    cp Makefile.in.info Makefile.in
+    make PAROPT_DIR=$PWD
+    # In some cases needed to set this CFLAGS
+    # CFLAGS='-stdlib=libc++' python setup.py install
+    python setup.py install
+    popd
+ }
+
 build_pyoptsparse() {
     patch_type=$1
 
     bkp_dir pyoptsparse
     git clone -b "$PYOPTSPARSE_BRANCH" https://github.com/mdolab/pyoptsparse.git
 
-    case $patch_type in
-        mumps)
-            sed -i -e "s/coinhsl/coinmumps', 'coinmetis/" pyoptsparse/pyoptsparse/pyIPOPT/setup.py
-            ;;
-        pardiso)
-            sed -i -e "s/'coinhsl', //;s/, 'blas', 'lapack'//" pyoptsparse/pyoptsparse/pyIPOPT/setup.py
-            ;;
-    esac
+    if [ "$PYOPTSPARSE_BRANCH" = "v1.2" ]; then
+        case $patch_type in
+            mumps)
+                sed -i -e "s/coinhsl/coinmumps', 'coinmetis/" pyoptsparse/pyoptsparse/pyIPOPT/setup.py
+                ;;
+            pardiso)
+                sed -i -e "s/'coinhsl', //;s/, 'blas', 'lapack'//" pyoptsparse/pyoptsparse/pyIPOPT/setup.py
+                ;;
+        esac
+    elif [ "$PYOPTSPARSE_BRANCH" = "v2.1.5" ]; then
+        case $patch_type in
+            mumps)
+                sed -i -e 's/coinhsl/coinmumps", "coinmetis/' pyoptsparse/pyoptsparse/pyIPOPT/setup.py
+                ;;
+            pardiso)
+                sed -i -e 's/"coinhsl", //;s/, "blas", "lapack"//' pyoptsparse/pyoptsparse/pyIPOPT/setup.py
+                ;;
+        esac
+    fi
 
     if [ $INCLUDE_SNOPT = 1 ]; then
-        cp -a "${SNOPT_DIR}/." ./pyoptsparse/pyoptsparse/pySNOPT/source/.
+        rsync -a --exclude snopth.f "${SNOPT_DIR}/" ./pyoptsparse/pyoptsparse/pySNOPT/source/
+    fi
+
+    if [ "$PYOPTSPARSE_BRANCH" = "v2.1.5" ] && [ $INCLUDE_PAROPT = 1 ] ; then
+    echo ">>> Installing paropt";
+      install_paropt
     fi
 
     if [ $BUILD_PYOPTSPARSE = 1 ]; then
@@ -215,7 +249,7 @@ build_pyoptsparse() {
 	echo these variables before building it yourself:
 	echo
 	echo export IPOPT_INC=$PREFIX/include/coin-or
-        echo export IPOPT_LIB=$PREFIX/lib
+	echo export IPOPT_LIB=$PREFIX/lib
 	echo -----------------------------------------------------
     fi
 }
@@ -229,7 +263,9 @@ install_with_mumps() {
     pushd ThirdParty-Mumps
     ./get.Mumps
     ./configure --with-metis --with-metis-lflags="-L${PREFIX}/lib -lcoinmetis" \
-       --with-metis-cflags="-I${PREFIX}/include" --prefix=$PREFIX
+       --with-metis-cflags="-I${PREFIX}/include -I${PREFIX}/include/coin-or -I${PREFIX}/include/coin-or/metis" \
+       --prefix=$PREFIX CFLAGS="-I${PREFIX}/include -I${PREFIX}/include/coin-or -I${PREFIX}/include/coin-or/metis" \
+       FCFLAGS="-I${PREFIX}/include -I${PREFIX}/include/coin-or -I${PREFIX}/include/coin-or/metis"
     make
     make install
     popd
