@@ -160,7 +160,7 @@ install_metis() {
     git clone https://github.com/coin-or-tools/ThirdParty-Metis.git
     pushd ThirdParty-Metis
     ./get.Metis
-    ./configure --prefix=$PREFIX
+    CFLAGS='-Wno-implicit-function-declaration' ./configure --prefix=$PREFIX
     make
     make install
     popd
@@ -242,6 +242,7 @@ build_pyoptsparse() {
         # Necessary for pyoptsparse to find IPOPT:
         export IPOPT_INC=$PREFIX/include/coin-or
         export IPOPT_LIB=$PREFIX/lib
+        export CFLAGS='-Wno-implicit-function-declaration' 
         python -m pip install --no-cache-dir ./pyoptsparse
     else
 	echo -----------------------------------------------------
