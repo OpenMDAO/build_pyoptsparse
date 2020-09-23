@@ -8,7 +8,9 @@ Depending on which options are chosen, it may perform some minor patching to all
 ## Usage
 ```
 build_pyoptsparse.sh [-b branch] [-h] [-l linear_solver] [-n] [-p prefix] [-s snopt_dir] [-a]
+    -a                Include ParOpt. Default: no ParOpt
     -b branch         pyOptSparse git branch. Default: v2.1.5
+    -d                Do not erase the build directory after completion.
     -h                Display usage and exit.
     -l linear_solver  One of mumps, hsl, or pardiso. Default: mumps
     -n                Prepare, but do NOT build/install pyOptSparse.
@@ -18,7 +20,6 @@ build_pyoptsparse.sh [-b branch] [-h] [-l linear_solver] [-n] [-p prefix] [-s sn
                       this dir, the build may fail. If it does, rename
                       the directory or removing the old versions.
     -s snopt_dir      Include SNOPT from snopt_dir. Default: no SNOPT
-    -a                Include ParOpt. Default: no ParOpt
 
 NOTES:
     If HSL is selected as the linear solver, the

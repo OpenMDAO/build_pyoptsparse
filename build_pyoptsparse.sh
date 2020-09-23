@@ -16,16 +16,20 @@ COMPILER_SUITE=GNU
 INCLUDE_SNOPT=0
 SNOPT_DIR=SNOPT
 INCLUDE_PAROPT=0
+KEEP_BUILD_DIR=0
 BUILD_TIME=`date +%s`
 
 usage() {
 cat <<USAGE
 Download, configure, build, and install pyOptSparse with IPOPT
-support and dependencies.
+support and dependencies. A temporary working directory is created,
+which is removed if the installation succeeds unless -d is used.
 
 Usage:
 $0 [-b branch] [-h] [-l linear_solver] [-n] [-p prefix] [-s snopt_dir] [-a]
+    -a                Include ParOpt. Default: no ParOpt
     -b branch         pyOptSparse git branch. Default: ${PYOPTSPARSE_BRANCH}
+    -d                Do not erase the build directory after completion.
     -h                Display usage and exit.
     -l linear_solver  One of mumps, hsl, or pardiso. Default: mumps
     -n                Prepare, but do NOT build/install pyOptSparse.
@@ -35,7 +39,6 @@ $0 [-b branch] [-h] [-l linear_solver] [-n] [-p prefix] [-s snopt_dir] [-a]
                       this dir, the build may fail. If it does, rename
                       the directory or removing the old versions.
     -s snopt_dir      Include SNOPT from snopt_dir. Default: no SNOPT
-    -a                Include ParOpt. Default: no ParOpt
 
 NOTES:
     If HSL is selected as the linear solver, the
@@ -53,10 +56,12 @@ USAGE
     exit 3
 }
 
-while getopts ":b:hl:np:s:a" opt; do
+while getopts ":b:hl:np:s:ad" opt; do
     case ${opt} in
         b)
             PYOPTSPARSE_BRANCH="$OPTARG" ;;
+        d)
+            KEEP_BUILD_DIR=1 ;;
         h)
             usage ;;
         l)
@@ -78,11 +83,24 @@ while getopts ":b:hl:np:s:a" opt; do
             PREFIX="$OPTARG" ;;
         s)
             INCLUDE_SNOPT=1
-            SNOPT_DIR="$OPTARG"
+            SNOPT_DIR=$OPTARG
             if [ ! -d "$SNOPT_DIR" ]; then
-                echo "Specified SNOPT source dir $SNOPT_DIR doesn't exist."
+                echo "Specified SNOPT source dir $SNOPT_DIR doesn't exist relative to `pwd`."
                 exit 1
             fi
+
+            # Use snoptc.f to determine the exact folder to point to. This is the same
+            # file the the pyOptSparse build looks for. If it's not found, the
+            # pyOptSparse build will silently ignore SNOPT.
+            snopt_file=$(find "$SNOPT_DIR" -name snoptc.f)
+            if [ $snopt_file = '' ]; then
+                echo "$SNOPT_DIR does not appear to be a proper SNOPT directory."
+                exit 1
+            fi
+
+            # Make sure it's an absolute path instead of relative:
+            SNOPT_DIR=$(cd `dirname "$snopt_file"`; pwd)
+            echo "Using $SNOPT_DIR for SNOPT source."
             ;;
         a)
             INCLUDE_PAROPT=1 ;;
@@ -144,6 +162,10 @@ done
 }
 
 # TODO: Pre-check for more deps: lapack, blas, numpy
+
+build_dir=build_pyoptsparse.`printf "%x" $BUILD_TIME`
+mkdir $build_dir
+pushd $build_dir
 
 bkp_dir() {
     check_dir=$1
@@ -324,4 +346,9 @@ case $LINEAR_SOLVER in
 esac
 
 echo Done.
+popd
+if [ $KEEP_BUILD_DIR = 0 ]; then
+    echo "Removing build directory '$build_dir'"
+    rm -fr $build_dir
+fi
 exit 0
