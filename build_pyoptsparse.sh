@@ -196,10 +196,11 @@ install_ipopt() {
         git clone https://github.com/coin-or/Ipopt.git
     else
         ipopt_file=Ipopt-${IPOPT_VER}.tgz
-        curl -O https://www.coin-or.org/download/source/Ipopt/$ipopt_file
+        # curl -O https://www.coin-or.org/download/source/Ipopt/$ipopt_file
+        curl https://codeload.github.com/coin-or/Ipopt/tar.gz/releases/${IPOPT_VER} --output $ipopt_file
         tar xf $ipopt_file
         rm $ipopt_file
-        mv Ipopt-*${IPOPT_VER}* Ipopt
+        mv Ipopt-releases-*${IPOPT_VER}* Ipopt
     fi
 
     pushd Ipopt
