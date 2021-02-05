@@ -30,7 +30,7 @@ support and dependencies. A temporary working directory is created,
 which is removed if the installation succeeds unless -d is used.
 
 Usage:
-$0 [-a] [-b branch] [-d] [-f] [-g] [-h] [-l linear_solver]
+$0 [-a] [-b branch] [-d] [-f] [-g] [-h] [-i] [-l linear_solver]
     [-n] [-p prefix] [-s snopt_dir]
 
     -a                Include ParOpt. Default: no ParOpt
@@ -39,6 +39,7 @@ $0 [-a] [-b branch] [-d] [-f] [-g] [-h] [-l linear_solver]
     -f                Skip Python system vs. personal installation check.
     -g                Skip compiler functionality check.
     -h                Display usage and exit.
+    -i                Use Intel compiler suite instead of GNU.
     -l linear_solver  One of mumps, hsl, or pardiso. Default: mumps
     -n                Prepare, but do NOT build/install pyOptSparse.
                         Default: build & install
@@ -64,7 +65,7 @@ USAGE
     exit 3
 }
 
-while getopts ":ab:dfghl:np:s:" opt; do
+while getopts ":ab:dfghil:np:s:" opt; do
     case ${opt} in
         a)
             INCLUDE_PAROPT=1 ;;
@@ -78,6 +79,8 @@ while getopts ":ab:dfghl:np:s:" opt; do
             CHECK_COMPILER_COMPAT=0 ;;
         h)
             usage ;;
+        i)
+            COMPILER_SUITE=Intel ;;
         l)
             case ${OPTARG^^} in
                 MUMPS|HSL)
