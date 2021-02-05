@@ -79,7 +79,7 @@ while getopts ":ab:dfghil:np:s:" opt; do
         f)
             CHECK_PY_INST_TYPE=0 ;;
         g)
-            CHECK_COMPILER_COMPAT=0 ;;
+            CHECK_COMPILER_FUNCTION=0 ;;
         h)
             usage ;;
         i)
@@ -313,7 +313,7 @@ install_paropt() {
     cp Makefile.in.info Makefile.in
     make -j $CORES PAROPT_DIR=$PWD
     # In some cases needed to set this CFLAGS
-    # CFLAGS='-stdlib=libc++'  setup.py install
+    # CFLAGS='-stdlib=libc++' python setup.py install
     $PY setup.py install
     popd
  }
