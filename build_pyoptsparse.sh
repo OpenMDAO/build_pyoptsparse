@@ -21,7 +21,10 @@ CHECK_PY_INST_TYPE=1
 CHECK_COMPILER_FUNCTION=1
 BUILD_TIME=`date +%s`
 LINE="-----------------------------------------------------------------------------"
-CORES=`nproc`||CORES=`sysctl -n hw.ncpu`||CORES=1
+CORES=`nproc 2>&1`||CORES=`sysctl -n hw.ncpu 2>&1`||CORES=1
+
+# Use only half the available cores for building:
+[ $CORES -gt 1 ] && CORES=$((CORES/2))
 
 usage() {
 cat <<USAGE
@@ -46,7 +49,7 @@ $0 [-a] [-b branch] [-d] [-f] [-g] [-h] [-i] [-l linear_solver]
     -p prefix         Where to install. Default: $HOME/ipopt
                       Note: If older versions are already installed in
                       this dir, the build may fail. If it does, rename
-                      the directory or removing the old versions.
+                      the directory or remove the old versions.
     -s snopt_dir      Include SNOPT from snopt_dir. Default: no SNOPT
 
 NOTES:
@@ -161,11 +164,13 @@ fi
 ####################################################################
 
 set -e
-trap 'cmd_failed $? $LINENO' EXIT
+trap 'cmd_failed $?' EXIT
 
 cmd_failed() {
 	if [ "$1" != "0" ]; then
-		echo "FATAL ERROR: The command failed with error $1 at line $2."
+        echo $LINE
+		echo "FATAL ERROR: The command failed with error $1."
+        echo $LINE
 		exit 1
 	fi
 }
@@ -185,7 +190,8 @@ PYver=`$PY --version 2>&1`
 }
 
 # If it's not writable, it's probably the system version.
-[ $CHECK_PY_INST_TYPE = 1 -a ! -w $PY ] && {
+# Don't bother checking if it's on Travis.
+[ -z "$TRAVIS" ] && [ $CHECK_PY_INST_TYPE = 1 -a ! -w $PY ] && {
     cat<<EOD1
 $LINE
 The $PY binary is not writable and is probably the
@@ -222,7 +228,9 @@ done
 
 # Check for compiler functionality
 [ $CHECK_COMPILER_FUNCTION = 1 ] && {
-    echo "Testing compiler functionality. Can be skipped with -g."
+    echo $LINE
+    echo "Testing basic compiler functionality. Can be skipped with -g."
+    echo $LINE
     printf '#include <stdio.h>\nint main() {\nprintf("test");\nreturn 0;\n}\n' > hello.c
     $CC -o hello_c hello.c
     ./hello_c > /dev/null
@@ -239,7 +247,9 @@ done
     rm hello_f hello.f90
 }
 
+echo $LINE
 echo "Will run make with $CORES cores where possible."
+echo $LINE
 
 build_dir=build_pyoptsparse.`printf "%x" $BUILD_TIME`
 mkdir $build_dir
@@ -290,11 +300,18 @@ install_ipopt() {
 
 install_paropt() {
     bkp_dir paropt
+
+    [ -n "$TRAVIS" ] && {
+        #TODO: Remove this when the functionality is added to OM .travis.yml
+        conda install -v -c conda-forge gxx_linux-64 --yes
+        conda install -v -c conda-forge gfortran_linux-64 --yes
+    }
+
     pip install Cython
     git clone https://github.com/gjkennedy/paropt
     pushd paropt
     cp Makefile.in.info Makefile.in
-    make PAROPT_DIR=$PWD -j $CORES
+    make -j $CORES PAROPT_DIR=$PWD
     # In some cases needed to set this CFLAGS
     # CFLAGS='-stdlib=libc++'  setup.py install
     $PY setup.py install
