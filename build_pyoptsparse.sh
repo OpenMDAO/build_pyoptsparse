@@ -17,7 +17,11 @@ INCLUDE_SNOPT=0
 SNOPT_DIR=SNOPT
 INCLUDE_PAROPT=0
 KEEP_BUILD_DIR=0
+CHECK_PY_INST_TYPE=1
+CHECK_COMPILER_FUNCTION=1
 BUILD_TIME=`date +%s`
+LINE="-----------------------------------------------------------------------------"
+CORES=`nproc`||CORES=`sysctl -n hw.ncpu`||CORES=1
 
 usage() {
 cat <<USAGE
@@ -26,10 +30,14 @@ support and dependencies. A temporary working directory is created,
 which is removed if the installation succeeds unless -d is used.
 
 Usage:
-$0 [-b branch] [-h] [-l linear_solver] [-n] [-p prefix] [-s snopt_dir] [-a]
+$0 [-a] [-b branch] [-d] [-f] [-g] [-h] [-l linear_solver]
+    [-n] [-p prefix] [-s snopt_dir]
+
     -a                Include ParOpt. Default: no ParOpt
     -b branch         pyOptSparse git branch. Default: ${PYOPTSPARSE_BRANCH}
     -d                Do not erase the build directory after completion.
+    -f                Skip Python system vs. personal installation check.
+    -g                Skip compiler functionality check.
     -h                Display usage and exit.
     -l linear_solver  One of mumps, hsl, or pardiso. Default: mumps
     -n                Prepare, but do NOT build/install pyOptSparse.
@@ -56,12 +64,18 @@ USAGE
     exit 3
 }
 
-while getopts ":b:hl:np:s:ad" opt; do
+while getopts ":ab:dfghl:np:s:" opt; do
     case ${opt} in
+        a)
+            INCLUDE_PAROPT=1 ;;
         b)
             PYOPTSPARSE_BRANCH="$OPTARG" ;;
         d)
             KEEP_BUILD_DIR=1 ;;
+        f)
+            CHECK_PY_INST_TYPE=0 ;;
+        g)
+            CHECK_COMPILER_COMPAT=0 ;;
         h)
             usage ;;
         l)
@@ -102,8 +116,6 @@ while getopts ":b:hl:np:s:ad" opt; do
             SNOPT_DIR=$(cd `dirname "$snopt_file"`; pwd)
             echo "Using $SNOPT_DIR for SNOPT source."
             ;;
-        a)
-            INCLUDE_PAROPT=1 ;;
         \?)
             echo "Unrecognized option -${OPTARG} specified."
             usage ;;
@@ -136,7 +148,11 @@ export CC CXX FC MAKEFLAGS
 
 REQUIRED_CMDS="make $CC $CXX $FC sed git curl tar"
 if [ $BUILD_PYOPTSPARSE = 1 ]; then
-    REQUIRED_CMDS="$REQUIRED_CMDS python pip swig"
+    REQUIRED_CMDS="$REQUIRED_CMDS pip swig"
+fi
+
+if [ $INCLUDE_PAROPT = 1 ]; then
+    REQUIRED_CMDS="$REQUIRED_CMDS mpicxx"
 fi
 
 ####################################################################
@@ -151,6 +167,46 @@ cmd_failed() {
 	fi
 }
 
+##### Special checks for Python #####
+# Find the nearest 
+PY=`which python3` || PY=`which python` || {
+    echo "Python executable cannot be found, please install it or add it to PATH."
+    exit 1
+}
+
+# Make sure it's the right version
+PYver=`$PY --version 2>&1`
+[ "${PYver:0:8}" = 'Python 3' ] || {
+    echo "Python version 3.x is required, cannot continue with $PYver."
+    exit 1
+}
+
+# If it's not writable, it's probably the system version.
+[ $CHECK_PY_INST_TYPE = 1 -a ! -w $PY ] && {
+    cat<<EOD1
+$LINE
+The $PY binary is not writable and is probably the
+system version instead of a personal installation/virtual environment.
+Continuing MAY result in permissions errors or dependency conflicts
+(this check can be skipped with the -f switch).
+
+To create a virtual Python environment, run:
+
+$PY -m venv path/to/new_env
+source path/to/new_env/bin/activate
+$LINE
+Attempt installation with $PY anyway?
+EOD1
+    select yn in "Yes" "No"; do
+        case $yn in
+            Yes ) break;;
+            No ) echo "Exiting as requested."; exit 0;;
+        esac
+    done
+    echo ""
+    echo "Continuing as requested..."
+}
+
 missing_cmds=''
 for c in $REQUIRED_CMDS; do
 	type -p $c > /dev/null || missing_cmds="$missing_cmds $c"
@@ -161,7 +217,26 @@ done
 	exit 1
 }
 
-# TODO: Pre-check for more deps: lapack, blas, numpy
+# Check for compiler functionality
+[ $CHECK_COMPILER_FUNCTION = 1 ] && {
+    echo "Testing compiler functionality. Can be skipped with -g."
+    printf '#include <stdio.h>\nint main() {\nprintf("test");\nreturn 0;\n}\n' > hello.c
+    $CC -o hello_c hello.c
+    ./hello_c > /dev/null
+    rm hello_c hello.c
+
+    printf '#include <iostream>\nint main() {\nstd::cout << "test";\nreturn 0;\n}\n' > hello.cc
+    $CXX -o hello_cxx hello.cc
+    ./hello_cxx > /dev/null
+    rm hello_cxx hello.cc
+
+    printf "program hello\n  print *, 'test'\nend program hello" > hello.f90
+    $FC -o hello_f hello.f90
+    ./hello_f > /dev/null
+    rm hello_f hello.f90
+}
+
+echo "Will run make with $CORES cores where possible."
 
 build_dir=build_pyoptsparse.`printf "%x" $BUILD_TIME`
 mkdir $build_dir
@@ -183,7 +258,7 @@ install_metis() {
     pushd ThirdParty-Metis
     ./get.Metis
     CFLAGS='-Wno-implicit-function-declaration' ./configure --prefix=$PREFIX
-    make
+    make -j $CORE
     make install
     popd
 }
@@ -205,28 +280,28 @@ install_ipopt() {
 
     pushd Ipopt
     ./configure --prefix=${PREFIX} --disable-java "$@"
-    make
+    make -j $CORES
     make install
     popd
 }
 
 install_paropt() {
     bkp_dir paropt
-    conda install -v -c conda-forge gxx_linux-64 --yes;
-    conda install -v -c conda-forge gfortran_linux-64 --yes;
+    pip install Cython
     git clone https://github.com/gjkennedy/paropt
     pushd paropt
     cp Makefile.in.info Makefile.in
-    make PAROPT_DIR=$PWD
+    make PAROPT_DIR=$PWD -j $CORES
     # In some cases needed to set this CFLAGS
-    # CFLAGS='-stdlib=libc++' python setup.py install
-    python setup.py install
+    # CFLAGS='-stdlib=libc++'  setup.py install
+    $PY setup.py install
     popd
  }
 
 build_pyoptsparse() {
     patch_type=$1
 
+    pip install numpy
     bkp_dir pyoptsparse
     git clone -b "$PYOPTSPARSE_BRANCH" https://github.com/mdolab/pyoptsparse.git
 
@@ -260,13 +335,13 @@ build_pyoptsparse() {
     fi
 
     if [ $BUILD_PYOPTSPARSE = 1 ]; then
-        python -m pip install sqlitedict
+        $PY -m pip install sqlitedict
 
         # Necessary for pyoptsparse to find IPOPT:
         export IPOPT_INC=$PREFIX/include/coin-or
         export IPOPT_LIB=$PREFIX/lib
         export CFLAGS='-Wno-implicit-function-declaration' 
-        python -m pip install --no-cache-dir ./pyoptsparse
+        $PY -m pip install --no-cache-dir ./pyoptsparse
     else
 	echo -----------------------------------------------------
 	echo NOT building pyOptSparse by request. Make sure to set
@@ -290,7 +365,7 @@ install_with_mumps() {
        --with-metis-cflags="-I${PREFIX}/include -I${PREFIX}/include/coin-or -I${PREFIX}/include/coin-or/metis" \
        --prefix=$PREFIX CFLAGS="-I${PREFIX}/include -I${PREFIX}/include/coin-or -I${PREFIX}/include/coin-or/metis" \
        FCFLAGS="-I${PREFIX}/include -I${PREFIX}/include/coin-or -I${PREFIX}/include/coin-or/metis"
-    make
+    make -j $CORES
     make install
     popd
 
@@ -315,7 +390,7 @@ install_with_hsl() {
     ./configure --prefix=$PREFIX --with-metis \
        --with-metis-lflags="-L${PREFIX}/lib -lcoinmetis" \
        --with-metis-cflags="-I${PREFIX}/include"
-    make
+    make -j $CORES
     make install
     popd
 
@@ -352,4 +427,19 @@ if [ $KEEP_BUILD_DIR = 0 ]; then
     echo "Removing build directory '$build_dir'"
     rm -fr $build_dir
 fi
+
+ld_var=LD_LIBRARY_PATH
+[ `uname -s` = 'Darwin' ] && ld_var=DYLD_LIBRARY_PATH
+cat<<EOD2
+
+$LINE
+NOTE: Set the following environment variable before using this installation:
+
+export ${ld_var}=${PREFIX}/lib:\$${ld_var}
+
+Otherwise, you may encounter errors such as:
+ "pyOptSparse Error: There was an error importing the compiled IPOPT module"
+$LINE
+Build succeeded!
+EOD2
 exit 0
