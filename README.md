@@ -23,7 +23,7 @@ Usage:
     -l linear_solver  One of mumps, hsl, or pardiso. Default: mumps
     -n                Prepare, but do NOT build/install pyOptSparse.
                         Default: build & install
-    -p prefix         Where to install. Default: /Users/tkollar/ipopt
+    -p prefix         Where to install. Default: $HOME/ipopt
                       Note: If older versions are already installed in
                       this dir, the build may fail. If it does, rename
                       the directory or remove the old versions.
