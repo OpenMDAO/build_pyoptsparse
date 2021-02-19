@@ -32,7 +32,7 @@ The script expects gcc, g++, and gfortran to be available (unless -i is used). I
                         e.g. -t ../../coinhsl-archive-2014.01.17.tar.gz
 
 NOTES:
-    When using HSL as the linear solver, the source code tar file file can
+    When using HSL as the linear solver, the source code tar file can
     be obtained from http://www.hsl.rl.ac.uk/ipopt/
 
     If PARDISO is selected as the linear solver, the Intel compiler suite
