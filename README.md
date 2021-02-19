@@ -9,9 +9,8 @@ The script expects gcc, g++, and gfortran to be available (unless -i is used). I
 
 ## Usage
 ```
-Usage:
 ./build_pyoptsparse.sh [-a] [-b branch] [-d] [-f] [-g] [-h] [-i] [-l linear_solver]
-    [-n] [-p prefix] [-s snopt_dir]
+    [-n] [-p prefix] [-s snopt_dir] [-t hsl_tar_file]
 
     -a                Include ParOpt. Default: no ParOpt
     -b branch         pyOptSparse git branch. Default: v2.1.5
@@ -20,19 +19,21 @@ Usage:
     -g                Skip compiler functionality check.
     -h                Display usage and exit.
     -i                Use Intel compiler suite instead of GNU.
-    -l linear_solver  One of mumps, hsl, or pardiso. Default: mumps
+    -l linear_solver  One of mumps, hsl (see -t), or pardiso. Default: mumps
     -n                Prepare, but do NOT build/install pyOptSparse.
                         Default: build & install
-    -p prefix         Where to install. Default: $HOME/ipopt
+    -p prefix         Where to install. Default: ~/ipopt
                       Note: If older versions are already installed in
                       this dir, the build may fail. If it does, rename
                       the directory or remove the old versions.
     -s snopt_dir      Include SNOPT from snopt_dir. Default: no SNOPT
+    -t hsl_tar_file   If hsl is specified with -l, use this as the path
+                        to the tar file with the HSL source.
+                        e.g. -t ../../coinhsl-archive-2014.01.17.tar.gz
 
 NOTES:
-    If HSL is selected as the linear solver, the
-    coinhsl-archive-2014.01.17.tar.gz file must exist in the current
-    directory. This can be obtained from http://www.hsl.rl.ac.uk/ipopt/
+    When using HSL as the linear solver, the source code tar file can
+    be obtained from http://www.hsl.rl.ac.uk/ipopt/
 
     If PARDISO is selected as the linear solver, the Intel compiler suite
     with MKL must be available.
@@ -40,5 +41,5 @@ NOTES:
     Examples:
       ./build_pyoptsparse.sh
       ./build_pyoptsparse.sh -l pardiso
-      ./build_pyoptsparse.sh -l hsl -n
+      ./build_pyoptsparse.sh -l hsl -t ../../coinhsl-archive-2014.01.17.tar.gz
  ```

@@ -7,7 +7,6 @@
 # Default values:
 # IPOPT 3.12.x has a broken configure on Mac
 IPOPT_VER=3.13.1
-HSL_VER=2014.01.17
 PREFIX=$HOME/ipopt
 LINEAR_SOLVER=MUMPS
 BUILD_PYOPTSPARSE=1
@@ -15,6 +14,7 @@ PYOPTSPARSE_BRANCH=v2.1.5
 COMPILER_SUITE=GNU
 INCLUDE_SNOPT=0
 SNOPT_DIR=SNOPT
+HSL_TAR_FILE=NOFILE
 INCLUDE_PAROPT=0
 KEEP_BUILD_DIR=0
 CHECK_PY_INST_TYPE=1
@@ -34,7 +34,7 @@ which is removed if the installation succeeds unless -d is used.
 
 Usage:
 $0 [-a] [-b branch] [-d] [-f] [-g] [-h] [-i] [-l linear_solver]
-    [-n] [-p prefix] [-s snopt_dir]
+    [-n] [-p prefix] [-s snopt_dir] [-t hsl_tar_file]
 
     -a                Include ParOpt. Default: no ParOpt
     -b branch         pyOptSparse git branch. Default: ${PYOPTSPARSE_BRANCH}
@@ -43,19 +43,21 @@ $0 [-a] [-b branch] [-d] [-f] [-g] [-h] [-i] [-l linear_solver]
     -g                Skip compiler functionality check.
     -h                Display usage and exit.
     -i                Use Intel compiler suite instead of GNU.
-    -l linear_solver  One of mumps, hsl, or pardiso. Default: mumps
+    -l linear_solver  One of mumps, hsl (see -t), or pardiso. Default: mumps
     -n                Prepare, but do NOT build/install pyOptSparse.
                         Default: build & install
-    -p prefix         Where to install. Default: $HOME/ipopt
+    -p prefix         Where to install. Default: ~/ipopt
                       Note: If older versions are already installed in
                       this dir, the build may fail. If it does, rename
                       the directory or remove the old versions.
     -s snopt_dir      Include SNOPT from snopt_dir. Default: no SNOPT
+    -t hsl_tar_file   If hsl is specified with -l, use this as the path
+                        to the tar file with the HSL source.
+                        e.g. -t ../../coinhsl-archive-2014.01.17.tar.gz
 
 NOTES:
-    If HSL is selected as the linear solver, the
-    coinhsl-archive-${HSL_VER}.tar.gz file must exist in the current
-    directory. This can be obtained from http://www.hsl.rl.ac.uk/ipopt/
+    When using HSL as the linear solver, the source code tar file can
+    be obtained from http://www.hsl.rl.ac.uk/ipopt/
 
     If PARDISO is selected as the linear solver, the Intel compiler suite
     with MKL must be available.
@@ -63,12 +65,12 @@ NOTES:
     Examples:
       $0
       $0 -l pardiso
-      $0 -l hsl -n
+      $0 -l hsl -n -t ../../coinhsl-archive-2014.01.17.tar.gz
 USAGE
     exit 3
 }
 
-while getopts ":ab:dfghil:np:s:" opt; do
+while getopts ":ab:dfghil:np:s:t:" opt; do
     case ${opt} in
         a)
             INCLUDE_PAROPT=1 ;;
@@ -122,6 +124,19 @@ while getopts ":ab:dfghil:np:s:" opt; do
             SNOPT_DIR=$(cd `dirname "$snopt_file"`; pwd)
             echo "Using $SNOPT_DIR for SNOPT source."
             ;;
+        t)
+            tar_file=$OPTARG
+            if [ ! -f "$tar_file" ]; then
+                echo "Specified HSL tar file $tar_file doesn't exist relative to `pwd`."
+                exit 1
+            fi
+
+            # Make sure it's an absolute path instead of relative:
+            tar_dir=$(cd `dirname "$tar_file"`; pwd)
+            bare_file=`basename $tar_file`
+            HSL_TAR_FILE="${tar_dir}/${bare_file}"
+            echo "Using $HSL_TAR_FILE for HSL source tar file."
+            ;;
         \?)
             echo "Unrecognized option -${OPTARG} specified."
             usage ;;
@@ -152,7 +167,7 @@ esac
 MAKEFLAGS='-j 6'
 export CC CXX FC MAKEFLAGS
 
-REQUIRED_CMDS="make $CC $CXX $FC sed git curl tar"
+REQUIRED_CMDS="make $CC $CXX $FC sed git curl tar awk"
 if [ $BUILD_PYOPTSPARSE = 1 ]; then
     REQUIRED_CMDS="$REQUIRED_CMDS pip swig"
 fi
@@ -167,7 +182,7 @@ set -e
 trap 'cmd_failed $?' EXIT
 
 cmd_failed() {
-	if [ "$1" != "0" ]; then
+	if [ "$1" != "0" -a "$1" != "100" ]; then
         echo $LINE
 		echo "FATAL ERROR: The command failed with error $1."
         echo $LINE
@@ -363,13 +378,13 @@ build_pyoptsparse() {
         export CFLAGS='-Wno-implicit-function-declaration' 
         $PY -m pip install --no-cache-dir ./pyoptsparse
     else
-	echo -----------------------------------------------------
+	echo $LINE
 	echo NOT building pyOptSparse by request. Make sure to set
 	echo these variables before building it yourself:
 	echo
 	echo export IPOPT_INC=$PREFIX/include/coin-or
 	echo export IPOPT_LIB=$PREFIX/lib
-	echo -----------------------------------------------------
+	echo $LINE
     fi
 }
 
@@ -401,12 +416,11 @@ install_with_hsl() {
     bkp_dir ThirdParty-HSL
 
     # Unpack, build, and install HSL archive lib:
-    hsl_top=coinhsl-archive-${HSL_VER}
-    hsl_tar_file=../${hsl_top}.tar.gz
     git clone https://github.com/coin-or-tools/ThirdParty-HSL
     pushd ThirdParty-HSL
-    tar xf $hsl_tar_file
-    mv $hsl_top coinhsl
+    hsl_top_dir=`tar vtf $HSL_TAR_FILE|head -1|awk '{print $9;}'`
+    tar xf $HSL_TAR_FILE
+    mv $hsl_top_dir coinhsl
     ./configure --prefix=$PREFIX --with-metis \
        --with-metis-lflags="-L${PREFIX}/lib -lcoinmetis" \
        --with-metis-cflags="-I${PREFIX}/include"
@@ -432,6 +446,13 @@ case $LINEAR_SOLVER in
     MUMPS)
         install_with_mumps ;;
     HSL)
+        [ "$HSL_TAR_FILE" = "NOFILE" ] && {
+            echo
+            echo $LINE
+            echo "ERROR: With hsl, use -t to point to the source tar file.";
+            echo $LINE
+            exit 100;
+        }
         install_with_hsl ;;
     PARDISO)
         install_with_pardiso ;;
