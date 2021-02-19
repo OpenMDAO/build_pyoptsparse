@@ -46,7 +46,7 @@ $0 [-a] [-b branch] [-d] [-f] [-g] [-h] [-i] [-l linear_solver]
     -l linear_solver  One of mumps, hsl (see -t), or pardiso. Default: mumps
     -n                Prepare, but do NOT build/install pyOptSparse.
                         Default: build & install
-    -p prefix         Where to install. Default: $HOME/ipopt
+    -p prefix         Where to install. Default: ~/ipopt
                       Note: If older versions are already installed in
                       this dir, the build may fail. If it does, rename
                       the directory or remove the old versions.
@@ -56,7 +56,7 @@ $0 [-a] [-b branch] [-d] [-f] [-g] [-h] [-i] [-l linear_solver]
                         e.g. -t ../../coinhsl-archive-2014.01.17.tar.gz
 
 NOTES:
-    When using HSL as the linear solver, the source code tar file file can
+    When using HSL as the linear solver, the source code tar file can
     be obtained from http://www.hsl.rl.ac.uk/ipopt/
 
     If PARDISO is selected as the linear solver, the Intel compiler suite
@@ -125,16 +125,16 @@ while getopts ":ab:dfghil:np:s:t:" opt; do
             echo "Using $SNOPT_DIR for SNOPT source."
             ;;
         t)
-            HSL_TAR_FILE=$OPTARG
-            if [ ! -f "$HSL_TAR_FILE" ]; then
-                echo "Specified HSL tar file $HSL_TAR_FILE doesn't exist relative to `pwd`."
+            tar_file=$OPTARG
+            if [ ! -f "$tar_file" ]; then
+                echo "Specified HSL tar file $tar_file doesn't exist relative to `pwd`."
                 exit 1
             fi
 
             # Make sure it's an absolute path instead of relative:
-            HSL_TAR_DIR=$(cd `dirname "$HSL_TAR_FILE"`; pwd)
-            HSL_BARE_FILE=`basename $HSL_TAR_FILE`
-            HSL_TAR_FILE="${HSL_TAR_DIR}/${HSL_BARE_FILE}"
+            tar_dir=$(cd `dirname "$tar_file"`; pwd)
+            bare_file=`basename $tar_file`
+            HSL_TAR_FILE="${tar_dir}/${bare_file}"
             echo "Using $HSL_TAR_FILE for HSL source tar file."
             ;;
         \?)
