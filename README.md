@@ -22,7 +22,7 @@ The script expects gcc, g++, and gfortran to be available (unless -i is used). I
     -l linear_solver  One of mumps, hsl (see -t), or pardiso. Default: mumps
     -n                Prepare, but do NOT build/install pyOptSparse.
                         Default: build & install
-    -p prefix         Where to install. Default: /Users/tkollar/ipopt
+    -p prefix         Where to install. Default: ~/ipopt
                       Note: If older versions are already installed in
                       this dir, the build may fail. If it does, rename
                       the directory or remove the old versions.
