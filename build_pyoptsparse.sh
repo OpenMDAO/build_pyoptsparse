@@ -5,15 +5,20 @@
 # build is disabled by command line options).
 #
 # Default values:
-# IPOPT 3.12.x has a broken configure on Mac
-IPOPT_VER=3.13.1
 PREFIX=$HOME/ipopt
 LINEAR_SOLVER=MUMPS
 BUILD_PYOPTSPARSE=1
+
+METIS_BRANCH=stable/2.0
+MUMPS_BRANCH=stable/2.1
+IPOPT_BRANCH=stable/3.13
 PYOPTSPARSE_BRANCH=v2.1.5
+
 COMPILER_SUITE=GNU
+
 INCLUDE_SNOPT=0
 SNOPT_DIR=SNOPT
+
 HSL_TAR_FILE=NOFILE
 INCLUDE_PAROPT=0
 KEEP_BUILD_DIR=0
@@ -114,7 +119,7 @@ while getopts ":ab:dfghil:np:s:t:" opt; do
             # Use snoptc.f to determine the exact folder to point to. This is the same
             # file the the pyOptSparse build looks for. If it's not found, the
             # pyOptSparse build will silently ignore SNOPT.
-            snopt_file=$(find "$SNOPT_DIR" -name snoptc.f)
+            snopt_file=$(find -L "$SNOPT_DIR" -name snoptc.f)
             if [ $snopt_file = '' ]; then
                 echo "$SNOPT_DIR does not appear to be a proper SNOPT directory."
                 exit 1
@@ -282,7 +287,7 @@ install_metis() {
     bkp_dir ThirdParty-Metis
 
     # Install METIS
-    git clone https://github.com/coin-or-tools/ThirdParty-Metis.git
+    git clone -b $METIS_BRANCH https://github.com/coin-or-tools/ThirdParty-Metis.git
     pushd ThirdParty-Metis
     ./get.Metis
     CFLAGS='-Wno-implicit-function-declaration' ./configure --prefix=$PREFIX
@@ -295,16 +300,7 @@ install_ipopt() {
     bkp_dir Ipopt
 
     echo $CC $CXX $FC
-    if [ $IPOPT_VER = 'MASTER' ]; then
-        git clone https://github.com/coin-or/Ipopt.git
-    else
-        ipopt_file=Ipopt-${IPOPT_VER}.tgz
-        # curl -O https://www.coin-or.org/download/source/Ipopt/$ipopt_file
-        curl https://codeload.github.com/coin-or/Ipopt/tar.gz/releases/${IPOPT_VER} --output $ipopt_file
-        tar xf $ipopt_file
-        rm $ipopt_file
-        mv Ipopt-releases-*${IPOPT_VER}* Ipopt
-    fi
+    git clone -b $IPOPT_BRANCH https://github.com/coin-or/Ipopt.git
 
     pushd Ipopt
     ./configure --prefix=${PREFIX} --disable-java "$@"
@@ -393,7 +389,7 @@ install_with_mumps() {
     bkp_dir ThirdParty-Mumps
 
     # Install MUMPS
-    git clone https://github.com/coin-or-tools/ThirdParty-Mumps.git
+    git clone -b $MUMPS_BRANCH https://github.com/coin-or-tools/ThirdParty-Mumps.git
     pushd ThirdParty-Mumps
     ./get.Mumps
     ./configure --with-metis --with-metis-lflags="-L${PREFIX}/lib -lcoinmetis" \
