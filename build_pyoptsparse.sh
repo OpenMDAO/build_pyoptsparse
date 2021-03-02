@@ -119,7 +119,7 @@ while getopts ":ab:dfghil:np:s:t:" opt; do
             # Use snoptc.f to determine the exact folder to point to. This is the same
             # file the the pyOptSparse build looks for. If it's not found, the
             # pyOptSparse build will silently ignore SNOPT.
-            snopt_file=$(find "$SNOPT_DIR" -name snoptc.f)
+            snopt_file=$(find -L "$SNOPT_DIR" -name snoptc.f)
             if [ $snopt_file = '' ]; then
                 echo "$SNOPT_DIR does not appear to be a proper SNOPT directory."
                 exit 1
