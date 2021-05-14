@@ -10,7 +10,7 @@ LINEAR_SOLVER=MUMPS
 BUILD_PYOPTSPARSE=1
 
 METIS_BRANCH=stable/2.0
-MUMPS_BRANCH=stable/2.1
+MUMPS_BRANCH=stable/2.0
 IPOPT_BRANCH=stable/3.13
 PYOPTSPARSE_BRANCH=v2.1.5
 
@@ -284,6 +284,9 @@ bkp_dir() {
 }
 
 install_metis() {
+    echo "==========================="
+    echo "INSTALL METIS $METIS_BRANCH"
+    echo "==========================="
     bkp_dir ThirdParty-Metis
 
     # Install METIS
@@ -297,6 +300,9 @@ install_metis() {
 }
 
 install_ipopt() {
+    echo "==========================="
+    echo "INSTALL IPOPT $IPOPT_BRANCH"
+    echo "==========================="
     bkp_dir Ipopt
 
     echo $CC $CXX $FC
@@ -310,6 +316,9 @@ install_ipopt() {
 }
 
 install_paropt() {
+    echo "=============="
+    echo "INSTALL PAROPT"
+    echo "=============="
     bkp_dir paropt
 
     [ -n "$TRAVIS" ] && {
@@ -330,6 +339,9 @@ install_paropt() {
  }
 
 build_pyoptsparse() {
+    echo "====================================="
+    echo "BUILD PYOPTSPARSE $PYOPTSPARSE_BRANCH"
+    echo "====================================="
     patch_type=$1
 
     pip install numpy
@@ -386,6 +398,9 @@ build_pyoptsparse() {
 
 install_with_mumps() {
     install_metis
+    echo "================================"
+    echo "INSTALL WITH MUMPS $MUMPS_BRANCH"
+    echo "================================"
     bkp_dir ThirdParty-Mumps
 
     # Install MUMPS
@@ -408,6 +423,9 @@ install_with_mumps() {
 }
 
 install_with_hsl() {
+    echo "================"
+    echo "INSTALL WITH HSL"
+    echo "================"
     install_metis
     bkp_dir ThirdParty-HSL
 
@@ -431,6 +449,9 @@ install_with_hsl() {
 }
 
 install_with_pardiso() {
+    echo "====================="
+    echo "INSTALL WITH PARADISO"
+    echo "====================="
     install_ipopt --with-lapack="-mkl"
 
     # pyOptSparse doesn't do well with Intel compilers, so unset:
