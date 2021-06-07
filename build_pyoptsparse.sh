@@ -92,12 +92,13 @@ while getopts ":ab:dfghil:np:s:t:" opt; do
         i)
             COMPILER_SUITE=Intel ;;
         l)
-            case ${OPTARG^^} in
+            LS_UP=`echo $OPTARG | tr [:lower:] [:upper:]`
+            case $LS_UP in
                 MUMPS|HSL)
-                    LINEAR_SOLVER=${OPTARG^^}
+                    LINEAR_SOLVER=$LS_UP
                     COMPILER_SUITE=GNU ;;
                 PARDISO)
-                    LINEAR_SOLVER=${OPTARG^^}
+                    LINEAR_SOLVER=PARDISO
                     COMPILER_SUITE=Intel ;;
                 *)
                     echo "Unrecognized linear solver specified."
