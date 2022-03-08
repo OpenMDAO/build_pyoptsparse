@@ -411,7 +411,7 @@ install_with_mumps() {
     ./configure --with-metis --with-metis-lflags="-L${PREFIX}/lib -lcoinmetis" \
        --with-metis-cflags="-I${PREFIX}/include -I${PREFIX}/include/coin-or -I${PREFIX}/include/coin-or/metis" \
        --prefix=$PREFIX CFLAGS="-I${PREFIX}/include -I${PREFIX}/include/coin-or -I${PREFIX}/include/coin-or/metis" \
-       FCFLAGS="-I${PREFIX}/include -I${PREFIX}/include/coin-or -I${PREFIX}/include/coin-or/metis"
+       FCFLAGS="-fallow-argument-mismatch -I${PREFIX}/include -I${PREFIX}/include/coin-or -I${PREFIX}/include/coin-or/metis"
     make -j $CORES
     make install
     popd
