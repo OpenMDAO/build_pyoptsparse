@@ -158,6 +158,7 @@ case $COMPILER_SUITE in
         CC=gcc
         CXX=g++
         FC=gfortran
+        GCCMAJORVER=`gcc -dumpversion | cut -f1 -d.`
         ;;
     Intel)
         CC=icc
@@ -408,10 +409,16 @@ install_with_mumps() {
     git clone -b $MUMPS_BRANCH https://github.com/coin-or-tools/ThirdParty-Mumps.git
     pushd ThirdParty-Mumps
     ./get.Mumps
+
+    # for GCC>=10, see Issue #30
+    if [[ $GCCMAJORVER -ge 10 ]]; then
+        ALLOW_MISMATCH='-fallow-argument-mismatch'
+    fi
+
     ./configure --with-metis --with-metis-lflags="-L${PREFIX}/lib -lcoinmetis" \
        --with-metis-cflags="-I${PREFIX}/include -I${PREFIX}/include/coin-or -I${PREFIX}/include/coin-or/metis" \
        --prefix=$PREFIX CFLAGS="-I${PREFIX}/include -I${PREFIX}/include/coin-or -I${PREFIX}/include/coin-or/metis" \
-       FCFLAGS="-fallow-argument-mismatch -I${PREFIX}/include -I${PREFIX}/include/coin-or -I${PREFIX}/include/coin-or/metis"
+       FCFLAGS="${ALLOW_MISMATCH} -I${PREFIX}/include -I${PREFIX}/include/coin-or -I${PREFIX}/include/coin-or/metis"
     make -j $CORES
     make install
     popd
