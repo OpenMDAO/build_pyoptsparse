@@ -410,7 +410,7 @@ install_with_mumps() {
     pushd ThirdParty-Mumps
     ./get.Mumps
 
-    # for GCC>=10, see Issue #30
+    # for GCC>=10, see Issue #29
     if [[ $GCCMAJORVER -ge 10 ]]; then
         ALLOW_MISMATCH='-fallow-argument-mismatch'
     fi
