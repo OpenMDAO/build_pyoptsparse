@@ -447,8 +447,15 @@ def install_mumps_from_src():
     make_install(1)
     popd()
 
-def install_ipopt_from_src(config_opts):
-    """ Git clone the IPOPT repo, build the library, and install it and the include files. """
+def install_ipopt_from_src(config_opts:list):
+    """
+    Git clone the IPOPT repo, build the library, and install it and the include files.
+
+    Parameters
+    ----------
+    config_opts : list
+        Additional options to use with the IPOPT configure script.
+    """
     if not allow_build('ipopt'):
         return
 
@@ -479,6 +486,17 @@ def install_with_mumps():
         ]
         install_ipopt_from_src(config_opts=ipopt_opts)
 
+def install_with_pardiso():
+    # install_ipopt_from_src(config_opts=['--with-lapack=-mkl'])
+    install_ipopt_from_src(config_opts=['--with-pardiso'])
+
+    # pyOptSparse doesn't do well with Intel compilers, so unset:
+    # os.environ.pop('CC')
+    # os.environ.pop('CXX')
+    # os.environ.pop('FC')
+
+    install_pyoptsparse_from_src()
+
 def install_pyoptsparse_from_src():
     """ Git clone the pyOptSparse repo and use pip to install it. """
     pip_install(pip_install_args=['numpy','sqlitedict'])
@@ -487,7 +505,8 @@ def install_pyoptsparse_from_src():
     os.environ['IPOPT_INC'] = get_coin_inc_dir()
     os.environ['IPOPT_LIB'] = f'{opts["prefix"]}/lib'
     os.environ['CFLAGS'] = '-Wno-implicit-function-declaration -std=c99'
-    pip_install(pip_install_args=['--no-cache-dir', './'])
+    if opts['build_pyoptsparse'] is True:
+        pip_install(pip_install_args=['--no-cache-dir', './'])
     popd()
 
 def install_pyoptsparse():
@@ -593,5 +612,10 @@ initialize()
 process_command_line()
 finish_setup()
 
-# install_with_mumps()
-# install_pyoptsparse()
+if opts['linear_solver'] == 'mumps':
+    install_with_mumps()
+    install_pyoptsparse()
+elif opts['linear_solver'] == 'pardiso':
+    install_with_pardiso()
+elif opts['linear_solver'] == 'hsl':
+    pass
