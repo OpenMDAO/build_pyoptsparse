@@ -63,9 +63,9 @@ build_info = {
     'hsl': {
         'branch': 'stable/2.2',
         'url': 'https://github.com/coin-or-tools/ThirdParty-HSL',
+        'include_check': PurePath('hsl','CoinHslConfig.h')
     }
 }
-
 
 def process_command_line():
     """ Validate command line arguments and update options, or print usage and exit. """
@@ -335,6 +335,30 @@ def get_coin_inc_dir()->str:
 
     return None
 
+def get_coin_lib_name(pkg:str)->str:
+    """
+    Determine whether the required lib starts with 'lib' or 'libcoin'.
+
+    Parameters
+    ----------
+    pkg : str
+        The name of the library to test.
+
+    Returns
+    -------
+    str
+        The pkg parameter prefaced with either 'coin' or nothing.
+    """
+    lib_vars = ['coin', '']
+
+    for lv in lib_vars:
+        lib_glob = f"lib{lv}{pkg}*"
+        found_libs = sorted(Path(f"{opts['prefix']}/lib").glob(lib_glob))
+        if len(found_libs) > 0:
+            return f'{lv}{pkg}'
+
+    return None
+
 def git_clone(build_key:str):
     """
     Create a temporary directory, change to it, and clone the repository associated
@@ -432,9 +456,10 @@ def install_mumps_from_src():
     if sys_info['gcc_major_ver'] >= 10:
         fcflags = '-fallow-argument-mismatch ' + fcflags
 
+    metis_lib = get_coin_lib_name('metis')
     config_opts = [
         '--with-metis',
-        f'--with-metis-lflags=-L{opts["prefix"]}/lib -lcoinmetis',
+        f'--with-metis-lflags=-L{opts["prefix"]}/lib -l{metis_lib}',
         f'--with-metis-cflags={cflags}',
         f'--prefix={opts["prefix"]}',
         f'CFLAGS={cflags}',
@@ -479,14 +504,64 @@ def install_with_mumps():
     else:
         install_mumps_from_src()
         coin_dir = get_coin_inc_dir()
+
+        mumps_lib = get_coin_lib_name('mumps')
         ipopt_opts = [
             '--with-mumps',
-            f'--with-mumps-lflags=-L{opts["prefix"]}/lib -lcoinmumps',
+            f'--with-mumps-lflags=-L{opts["prefix"]}/lib -l{mumps_lib}',
             f'--with-mumps-cflags=-I{coin_dir}/mumps',
             '--without-asl',
             '--without-hsl'
         ]
         install_ipopt_from_src(config_opts=ipopt_opts)
+
+def install_hsl_from_src():
+    """ Build HSL from the user-supplied source tar file. """
+    if not allow_build('hsl'):
+        return
+
+    build_dir = git_clone('hsl')
+
+    # Extract the HSL tar file and rename the folder to 'coinhsl'
+    # First, determine the name of the top-level folder:
+    tar = subprocess.run(['tar', 'vtf', opts['hsl_tar_file']], encoding='UTF-8',
+          stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    first_line = tar.stdout.splitlines()[0]
+    hsl_dir_name = first_line.split()[8].replace('/','')
+    run_cmd(cmd_list=['tar', 'xf', opts['hsl_tar_file']]) # Extract
+    Path(hsl_dir_name).rename('coinhsl') # Rename
+
+    coin_dir = get_coin_inc_dir()
+    metis_lib = get_coin_lib_name('metis')
+    cnf_cmd_list = [
+        './configure',
+        f'--prefix={opts["prefix"]}',
+        '--with-metis',
+        f'--with-metis-lflags=-L{opts["prefix"]}/lib -l{metis_lib}',
+        f'--with-mumps-cflags=-I{coin_dir}',
+    ]
+
+    note("Running configure")
+    run_cmd(cmd_list=cnf_cmd_list)
+    note_ok()
+    make_install()
+    popd()
+
+def install_with_hsl():
+    """ Install pyOptSparse using the HSL linear solver """
+    install_metis()
+    install_hsl_from_src()
+
+    coin_dir = get_coin_inc_dir()
+    metis_lib = get_coin_lib_name('metis')
+    ipopt_opts = [
+        '--with-hsl',
+        f'--with-hsl-lflags=-L{opts["prefix"]}/lib -lcoinhsl -l{metis_lib}',
+        f'--with-hsl-cflags=-I{coin_dir}/hsl',
+        '--disable-linear-solver-loader'
+    ]
+    install_ipopt_from_src(config_opts=ipopt_opts)
+    install_pyoptsparse_from_src()
 
 def install_with_pardiso():
     """ Build IPOPT with the PARDISO linear solver. """
@@ -532,14 +607,12 @@ def install_pyoptsparse_from_src():
 
     # Pull in SNOPT source:
     if opts['snopt_dir'] is not None:
-        if isinstance(build_dir, str):
-            copy_snopt_files(build_dir)
-        else:
-            copy_snopt_files(build_dir.name)
+        build_dir_str = build_dir if isinstance(build_dir, str) else build_dir.name
+        copy_snopt_files(build_dir_str)
 
     if opts['build_pyoptsparse'] is True:
         pip_install(pip_install_args=['--no-cache-dir', './'])
-        
+
     popd()
 
 def install_pyoptsparse():
@@ -652,17 +725,23 @@ def finish_setup():
     if opts['snopt_dir'] is not None:
         opts['snopt_dir'] = str(Path(opts['snopt_dir']).resolve())
 
+    if opts['hsl_tar_file'] is not None:
+        opts['hsl_tar_file'] = str(Path(opts['hsl_tar_file']).resolve())
+
     if opts['check_sanity']:
         check_sanity()
 
-initialize()
-process_command_line()
-finish_setup()
+def perform_install():
+    """ Initiate all the required actions in the script. """
+    initialize()
+    process_command_line()
+    finish_setup()
 
-if opts['linear_solver'] == 'mumps':
-    install_with_mumps()
-    install_pyoptsparse()
-elif opts['linear_solver'] == 'pardiso':
-    install_with_pardiso()
-elif opts['linear_solver'] == 'hsl':
-    pass
+    if opts['linear_solver'] == 'mumps':
+        install_with_mumps()
+        install_pyoptsparse()
+    elif opts['linear_solver'] == 'pardiso':
+        install_with_pardiso()
+    elif opts['linear_solver'] == 'hsl':
+        install_with_hsl()
+
