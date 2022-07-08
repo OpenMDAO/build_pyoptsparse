@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import argparse
 import os
+import re
+import shutil
 import sys
 import subprocess
 from pathlib import Path, PurePath
@@ -121,7 +123,7 @@ def process_command_line():
                         action="store_true",
                         default=opts['intel_compiler_suite'])
     parser.add_argument("-l", "--linear-solver",
-                        help="Which linear solver to expect. Default: mumps",
+                        help="Which linear solver to use with IPOPT. Default: mumps",
                         choices=['mumps', 'hsl', 'pardiso'],
                         default=opts['linear_solver'])
     parser.add_argument("-n", "--no-install",
@@ -277,7 +279,7 @@ def pip_install(pip_install_args):
     """
     cmd_list = ['python', '-m', 'pip', 'install']
     if opts['verbose'] is False:
-        cmd_list.append['-q']
+        cmd_list.append('-q')
     cmd_list.extend(pip_install_args)
     note('Installing packages with pip')
     run_cmd(cmd_list)
@@ -487,15 +489,37 @@ def install_with_mumps():
         install_ipopt_from_src(config_opts=ipopt_opts)
 
 def install_with_pardiso():
+    """ Build IPOPT with the PARDISO linear solver. """
     # install_ipopt_from_src(config_opts=['--with-lapack=-mkl'])
     install_ipopt_from_src(config_opts=['--with-pardiso'])
 
     # pyOptSparse doesn't do well with Intel compilers, so unset:
-    # os.environ.pop('CC')
-    # os.environ.pop('CXX')
-    # os.environ.pop('FC')
+    # select_gnu_compiler()
 
     install_pyoptsparse_from_src()
+
+def copy_snopt_files(build_dirname):
+    """
+    Copy SNOPT source files into the pyOptSparse build dir, excluding snopth.f.
+
+    Parameters
+    ----------
+    build_dirname : str
+        The directory where pyOptSparse is being built/installed from.
+    """
+    note('Copying SNOPT source files')
+    snoptc_f_list = sorted(Path(opts['snopt_dir']).rglob('snoptc.f'))
+    all_snopt_files = sorted(Path(snoptc_f_list[0]).parent.glob('*'))
+
+    dest_dir = str(Path(build_dirname) / 'pyoptsparse' / 'pySNOPT' / 'source')
+    
+    exclude_snopth_f = re.compile('.*snopth.f')
+    for sfile in all_snopt_files:
+        src_file = str(sfile)
+        if not exclude_snopth_f.match(src_file):
+            shutil.copy2(src_file, dest_dir)
+
+    note_ok()
 
 def install_pyoptsparse_from_src():
     """ Git clone the pyOptSparse repo and use pip to install it. """
@@ -505,8 +529,17 @@ def install_pyoptsparse_from_src():
     os.environ['IPOPT_INC'] = get_coin_inc_dir()
     os.environ['IPOPT_LIB'] = f'{opts["prefix"]}/lib'
     os.environ['CFLAGS'] = '-Wno-implicit-function-declaration -std=c99'
+
+    # Pull in SNOPT source:
+    if opts['snopt_dir'] is not None:
+        if isinstance(build_dir, str):
+            copy_snopt_files(build_dir)
+        else:
+            copy_snopt_files(build_dir.name)
+
     if opts['build_pyoptsparse'] is True:
         pip_install(pip_install_args=['--no-cache-dir', './'])
+        
     popd()
 
 def install_pyoptsparse():
@@ -589,21 +622,35 @@ def check_sanity():
     if opts['compile_required'] is True:
         check_compiler_sanity()
 
+def select_intel_compilers():
+    """ Set environment variables to use Intel compilers. """
+    os.environ['CC'] = 'icc'
+    os.environ['CXX'] = 'icpc'
+    os.environ['FC'] = 'ifort'
+    sys_info['gcc_major_ver'] = -1
+
+def select_gnu_compilers():
+    """ Set environment variables to use GNU compilers. """
+    os.environ['CC'] = 'gcc'
+    os.environ['CXX'] = 'g++'
+    os.environ['FC'] = 'gfortran'
+    gcc_ver = subprocess.run(['gcc', '-dumpversion'], capture_output=True)
+    sys_info['gcc_major_ver'] = int(gcc_ver.stdout.decode('UTF-8').split('.')[0])    
+
 def finish_setup():
     """ Finalize settings based on provided options and environment state. """
     if opts['intel_compiler_suite'] is True:
-        os.environ['CC'] = 'icc'
-        os.environ['CXX'] = 'icpc'
-        os.environ['FC'] = 'ifort'
+        select_intel_compilers()
     else:
-        os.environ['CC'] = 'gcc'
-        os.environ['CXX'] = 'g++'
-        os.environ['FC'] = 'gfortran'
-        gcc_ver = subprocess.run(['gcc', '-dumpversion'], capture_output=True)
-        sys_info['gcc_major_ver'] = int(gcc_ver.stdout.decode('UTF-8').split('.')[0])
+        select_gnu_compilers()
 
+    # Determine whether any compiling will actually be performed
     opts['compile_required'] = not (allow_install_with_conda() and opts['snopt_dir'] is None and
                 opts['include_paropt'] is False and opts['hsl_tar_file'] is None)
+
+    # Change snopt_dir to an absolute path
+    if opts['snopt_dir'] is not None:
+        opts['snopt_dir'] = str(Path(opts['snopt_dir']).resolve())
 
     if opts['check_sanity']:
         check_sanity()
