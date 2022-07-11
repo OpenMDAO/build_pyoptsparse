@@ -1,3 +1,0 @@
-[console_scripts]
-build-pyoptsparse = build_pyoptsparse:perform_install
-build_pyoptsparse = build_pyoptsparse:perform_install
