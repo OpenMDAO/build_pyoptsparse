@@ -1,0 +1,3 @@
+ansicolor
+numpy
+sqlitedict

@@ -1,0 +1,8 @@
+README.md
+setup.py
+build_pyoptsparse.egg-info/PKG-INFO
+build_pyoptsparse.egg-info/SOURCES.txt
+build_pyoptsparse.egg-info/dependency_links.txt
+build_pyoptsparse.egg-info/entry_points.txt
+build_pyoptsparse.egg-info/requires.txt
+build_pyoptsparse.egg-info/top_level.txt

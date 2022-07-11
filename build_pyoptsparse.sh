@@ -458,7 +458,7 @@ install_with_hsl() {
 
 install_with_pardiso() {
     echo "====================="
-    echo "INSTALL WITH PARADISO"
+    echo "INSTALL WITH PARDISO"
     echo "====================="
     install_ipopt --with-lapack="-mkl"
 

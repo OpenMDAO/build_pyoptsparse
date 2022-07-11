@@ -25,7 +25,9 @@ opts = {
     'force_rebuild': False,
     'ignore_conda': False,
     'verbose': False,
-    'compile_required': True # Not set directly by the user, but determined from other options
+    'compile_required': True, # Not set directly by the user, but determined from other options
+    'uninstall_built': False,
+    'uninstall_conda_pkgs': False
 }
 
 # Information about the host, status, and constants
@@ -42,28 +44,41 @@ sys_info = {
 # and which include file to test to see if it's already installed
 build_info = {
     'metis': {
-        'branch': 'stable/2.0',
+        'branch': 'releases/2.0.0',
         'url': 'https://github.com/coin-or-tools/ThirdParty-Metis.git',
-        'include_check': PurePath('metis', 'metis.h')
+        'src_lib_glob': 'libcoinmetis*',
+        'include_subdir': 'metis',
+        'include_file': 'metis.h'
     },
     'mumps': {
-        'branch': 'stable/3.0',
+        'branch': 'releases/3.0.2',
         'url': 'https://github.com/coin-or-tools/ThirdParty-Mumps.git',
-        'include_check': PurePath('mumps', 'mumps_c_types.h')
+        'src_lib_glob': 'libcoinmumps*',
+        'include_subdir': 'mumps',
+        'include_file': 'mumps_c_types.h'
     },
     'ipopt': {
-        'branch': 'stable/3.14',
+        'branch': 'releases/3.14.7',
         'url': 'https://github.com/coin-or/Ipopt.git',
-        'include_check': PurePath('IpoptConfig.h')
+        'src_lib_glob': 'lib*ipopt*',
+        'include_subdir': '.',
+        'include_glob_list': ['Ip*.hpp', 'Sens*.hpp'],
+        'include_file': 'IpoptConfig.h'
     },
     'pyoptsparse': {
         'branch': 'v2.8.3',
         'url': 'https://github.com/mdolab/pyoptsparse.git',
     },
     'hsl': {
-        'branch': 'stable/2.2',
+        'branch': 'releases/2.2.1',
         'url': 'https://github.com/coin-or-tools/ThirdParty-HSL',
-        'include_check': PurePath('hsl','CoinHslConfig.h')
+        'src_lib_glob': 'libcoinhsl*',
+        'include_subdir': 'hsl',
+        'include_file': 'CoinHslConfig.h'
+    },
+    'paropt': {
+        'branch': 'v2.0.2',
+        'url': 'https://github.com/smdogroup/paropt.git'
     }
 }
 
@@ -142,6 +157,18 @@ def process_command_line():
                         to the tar file of the HSL source. \
                         E.g. -t ../../coinhsl-archive-2014.01.17.tar.gz",
                         default=opts['hsl_tar_file'])
+    parser.add_argument("--uninstall-built",
+                        help="Attempt to remove an installation previously \
+                              built from source using the same --prefix. \
+                              Default: Do not uninstall",
+                        action="store_true",
+                        default=opts['uninstall_built'])
+    parser.add_argument("--uninstall-conda-pkgs",
+                        help="Attempt to remove packages metis, mumps, ipopt, \
+                        and pyoptsparse installed previously by conda in the same env. \
+                        Default: Do not uninstall",
+                        action="store_true",
+                        default=opts['uninstall_conda_pkgs'])
     parser.add_argument("-v", "--verbose",
                         help="Show output from git, configure, make, etc.",
                         action="store_true",
@@ -167,6 +194,8 @@ def process_command_line():
     opts['build_pyoptsparse'] = not args.no_install
     opts['snopt_dir'] = args.snopt_dir
     opts['hsl_tar_file'] = args.hsl_tar_file
+    opts['uninstall_built'] = args.uninstall_built
+    opts['uninstall_conda_pkgs'] = args.uninstall_conda_pkgs
     opts['verbose'] = args.verbose
 
 def announce(msg):
@@ -234,7 +263,7 @@ def run_cmd(cmd_list):
     else:
         subprocess.run(cmd_list, check=True)
 
-def make_install(parallel_procs:int=sys_info['compile_cores']):
+def make_install(parallel_procs:int=sys_info['compile_cores'], make_args = None, do_install=True):
     """
     Run 'make' followed by 'make install' in the current directory.
 
@@ -246,12 +275,16 @@ def make_install(parallel_procs:int=sys_info['compile_cores']):
     """
     note('Building')
     os.environ['MAKEFLAGS'] = f'-j {str(parallel_procs)}'
-    run_cmd(cmd_list=['make'])
+    make_cmd=['make']
+    if make_args is not None:
+        make_cmd.extend(make_args)
+    run_cmd(cmd_list=make_cmd)
     note_ok()
 
-    note('Installing')
-    run_cmd(cmd_list=['make','install'])
-    note_ok()
+    if do_install is True:
+        note('Installing')
+        run_cmd(cmd_list=['make','install'])
+        note_ok()
 
 def run_conda_cmd(cmd_args):
     """
@@ -414,7 +447,8 @@ def allow_build(build_key:str) -> bool:
     if coin_dir is None:
         build_ok = True
     else:
-        include_file = Path(PurePath(coin_dir, build_info[build_key]['include_check']))
+        d = build_info[build_key]
+        include_file = Path(coin_dir) / d['include_subdir'] / d['include_file']
         build_ok = opts['force_rebuild'] or not include_file.is_file()
 
     if build_ok is False:
@@ -471,7 +505,20 @@ def install_mumps_from_src():
     note("Running configure")
     run_cmd(cmd_list=cnf_cmd_list)
     note_ok()
-    make_install(1)
+    make_install(1) # MUMPS build can fail with parallel make
+    popd()
+
+def install_paropt_from_src():
+    """
+    Git clone the PAROPT repo, build the library, and install it and the include files.
+    """
+    build_dir = git_clone('paropt')
+
+    # Use build defaults as per ParOpt instructions:
+    Path('Makefile.in.info').rename('Makefile.in')
+    make_install(make_args=[f'PAROPT_DIR={Path.cwd()}'], do_install=False)
+    note('Installing with pip')
+    run_cmd(cmd_list=['python','-m','pip','install','./'])
     popd()
 
 def install_ipopt_from_src(config_opts:list):
@@ -605,6 +652,10 @@ def install_pyoptsparse_from_src():
     os.environ['IPOPT_LIB'] = f'{opts["prefix"]}/lib'
     os.environ['CFLAGS'] = '-Wno-implicit-function-declaration -std=c99'
 
+    # Build PAROPT if selected:
+    if opts['include_paropt'] is True:
+        install_paropt_from_src()
+
     # Pull in SNOPT source:
     if opts['snopt_dir'] is not None:
         build_dir_str = build_dir if isinstance(build_dir, str) else build_dir.name
@@ -612,6 +663,16 @@ def install_pyoptsparse_from_src():
 
     if opts['build_pyoptsparse'] is True:
         pip_install(pip_install_args=['--no-cache-dir', './'])
+    else:
+        print(f"""
+{LINE}
+{yellow('Not')} building pyOptSparse by request. Make sure to set
+these environment variables before building it yourself:
+
+export IPOPT_INC={opts["prefix"]}/include/coin-or
+export IPOPT_LIB={opts["prefix"]}/lib
+{LINE}
+        """)
 
     popd()
 
@@ -621,6 +682,67 @@ def install_pyoptsparse():
         install_conda_pkg('pyoptsparse')
     else:
         install_pyoptsparse_from_src()
+
+def uninstall_built_item(build_key:str):
+    """ Uninstall a specific item that was previously built from source code. """
+    d = build_info[build_key]
+    inc_dir = Path(opts['prefix']) / 'include' / 'coin-or' / d['include_subdir']
+
+
+    if 'include_glob_list' in d:
+    # If there's a list of glob patterns, remove found files individually instead
+    # of removing an entire include subdirectory:
+        for glob_item in d['include_glob_list']:
+            for inc_file in sorted(Path(inc_dir / glob_item)):
+                Path(inc_file).unlink()
+
+        try:
+            inc_dir.rmdir()
+        except:
+            pass
+    else:
+    # If there's no chance that other include files will be installed in the same
+    # folder, just remove the whole subdirectory.
+        if inc_dir.is_dir():
+            note(f'Removing {build_key.upper()} include directory')
+            shutil.rmtree(inc_dir)
+            note_ok()
+
+    # Remove individual library files.
+    lib_dir = Path(opts['prefix']) / 'lib'
+    lib_file_list = sorted(lib_dir.glob(d['src_lib_glob']))
+    if len(lib_file_list) > 0:
+        note('Removing {build_key.upper()} library files')
+        for lib_file in lib_file_list:
+            Path(lib_file).unlink()
+        note_ok()    
+
+def uninstall_paropt_and_pyoptsparse():
+    """ Both ParOpt and pyOptSparse were installed with pip. """
+    # Uninstall pyOptSparse
+    try:
+        import pyoptsparse
+        note('Removing pyOptSparse')
+        run_cmd(cmd_list=['pip','uninstall','-y','pyOptSparse'])
+        note_ok()
+    except ImportError:
+        pass   
+
+    # PAROPT
+    try:
+        import paropt
+        note('Removing PAROPT')
+        run_cmd(cmd_list=['pip','uninstall','-y','paropt'])
+        note_ok()
+    except ImportError:
+        pass
+
+def uninstall_built():
+    """ Attempt to remove files that were previously installed when building from source. """
+    uninstall_paropt_and_pyoptsparse()
+
+    for build_key in ['ipopt', 'hsl', 'mumps', 'metis']:
+        uninstall_built_item(build_key)
 
 def check_compiler_sanity():
     """ Build and run programs written in C, C++, and FORTRAN to test the compilers. """
@@ -735,6 +857,19 @@ def perform_install():
     """ Initiate all the required actions in the script. """
     initialize()
     process_command_line()
+
+    early_exit = False
+    if opts['uninstall_built']:
+        uninstall_built()
+        early_exit = True
+
+    if opts['uninstall_conda_pkgs']:
+        pass
+        early_exit = True
+
+    if early_exit is True:
+        exit(0)
+
     finish_setup()
 
     if opts['linear_solver'] == 'mumps':
