@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import os
+import platform
 import re
 import shutil
 import sys
@@ -37,7 +38,7 @@ sys_info = {
     'msg_color': 'gray',
     'gnu_sanity_check_done': False,
     'python_sanity_check_done': False,
-    'compile_cores': int(os.cpu_count()/2),
+    'compile_cores': int(os.cpu_count()/2)
 }
 
 # Where to find each package, which branch to use if obtained by git,
@@ -248,7 +249,7 @@ def venv_is_active() -> bool:
     """ Determine if a Python virtual environment is active. """
     return ('VIRTUAL_ENV' in os.environ)
 
-def run_cmd(cmd_list):
+def run_cmd(cmd_list, do_check=True):
     """
     Run a command with provided arguments. Hide output unless there's an error
     or verbose mode is enabled.
@@ -259,9 +260,9 @@ def run_cmd(cmd_list):
         Each token of the command line is a separate member of the list.
     """
     if opts['verbose'] is False:
-        subprocess.run(cmd_list, check=True, capture_output=True)
+        subprocess.run(cmd_list, check=do_check, capture_output=True)
     else:
-        subprocess.run(cmd_list, check=True)
+        subprocess.run(cmd_list, check=do_check)
 
 def make_install(parallel_procs:int=sys_info['compile_cores'], make_args = None, do_install=True):
     """
@@ -645,16 +646,15 @@ def copy_snopt_files(build_dirname):
 
 def install_pyoptsparse_from_src():
     """ Git clone the pyOptSparse repo and use pip to install it. """
-    pip_install(pip_install_args=['numpy','sqlitedict'])
+    # First, build PAROPT if selected:
+    if opts['include_paropt'] is True:
+        install_paropt_from_src()
+
     build_dir = git_clone('pyoptsparse')
 
     os.environ['IPOPT_INC'] = get_coin_inc_dir()
     os.environ['IPOPT_LIB'] = f'{opts["prefix"]}/lib'
     os.environ['CFLAGS'] = '-Wno-implicit-function-declaration -std=c99'
-
-    # Build PAROPT if selected:
-    if opts['include_paropt'] is True:
-        install_paropt_from_src()
 
     # Pull in SNOPT source:
     if opts['snopt_dir'] is not None:
@@ -676,24 +676,16 @@ export IPOPT_LIB={opts["prefix"]}/lib
 
     popd()
 
-def install_pyoptsparse():
-    """ Install pyOptSparse either with conda or by building it. """
-    if allow_install_with_conda() and opts['snopt_dir'] is None:
-        install_conda_pkg('pyoptsparse')
-    else:
-        install_pyoptsparse_from_src()
-
 def uninstall_built_item(build_key:str):
     """ Uninstall a specific item that was previously built from source code. """
     d = build_info[build_key]
     inc_dir = Path(opts['prefix']) / 'include' / 'coin-or' / d['include_subdir']
 
-
     if 'include_glob_list' in d:
     # If there's a list of glob patterns, remove found files individually instead
     # of removing an entire include subdirectory:
         for glob_item in d['include_glob_list']:
-            for inc_file in sorted(Path(inc_dir / glob_item)):
+            for inc_file in sorted(Path(inc_dir).glob(glob_item)):
                 Path(inc_file).unlink()
 
         try:
@@ -712,10 +704,10 @@ def uninstall_built_item(build_key:str):
     lib_dir = Path(opts['prefix']) / 'lib'
     lib_file_list = sorted(lib_dir.glob(d['src_lib_glob']))
     if len(lib_file_list) > 0:
-        note('Removing {build_key.upper()} library files')
+        note(f'Removing {build_key.upper()} library files')
         for lib_file in lib_file_list:
             Path(lib_file).unlink()
-        note_ok()    
+        note_ok()
 
 def uninstall_paropt_and_pyoptsparse():
     """ Both ParOpt and pyOptSparse were installed with pip. """
@@ -743,6 +735,14 @@ def uninstall_built():
 
     for build_key in ['ipopt', 'hsl', 'mumps', 'metis']:
         uninstall_built_item(build_key)
+
+def uninstall_conda_pkgs():
+    """ Attempt to remove packages previously installed by conda. """
+
+    for pkg in ['ipopt','mumps','metis']:
+        note(f"Removing {pkg.upper()} conda package")
+    run_cmd(cmd_list=['conda','uninstall','-y',pkg], do_check=False)
+    note_ok()
 
 def check_compiler_sanity():
     """ Build and run programs written in C, C++, and FORTRAN to test the compilers. """
@@ -853,6 +853,61 @@ def finish_setup():
     if opts['check_sanity']:
         check_sanity()
 
+def post_build_success():
+    """ Announce successful build and print some instructions. """
+    announce("The pyOptSparse build is complete")
+
+    lib_dir = Path(opts['prefix']) / 'lib'
+    sys_name = platform.system()
+    if sys_name == 'Darwin':
+        var_name = 'DYLD_LIBRARY_PATH'
+    else:
+        var_name = 'LD_LIBRARY_PATH'
+    
+    if conda_is_active():
+        #TODO: Remove these files during uninstall
+        bash_path = which('bash')
+
+        act_dir = Path(opts['prefix']) / 'etc' / 'conda' / 'activate.d'
+        act_dir.mkdir(parents=True, exist_ok=True)
+        act_file_name = str(act_dir / 'pyoptsparse_lib.sh')
+        with open(act_file_name, 'w', encoding="utf-8") as f:
+            f.write(
+f"""#!{bash_path}
+export OLD_{var_name}="${var_name}"
+export {var_name}="{str(lib_dir)}:${var_name}"
+""")
+
+        deact_dir = Path(opts['prefix']) / 'etc' / 'conda' / 'deactivate.d'
+        deact_dir.mkdir(parents=True, exist_ok=True)
+        deact_file_name = str(deact_dir / 'pyoptsparse_lib.sh')
+        with open(deact_file_name, 'w', encoding="utf-8") as f:
+            f.write(
+f"""#!{bash_path}
+export {var_name}="$OLD_{var_name}"
+""")        
+
+        print(
+f"""Your {cyan(os.environ['CONDA_DEFAULT_ENV'])} conda environment has been updated to automatically 
+set the {yellow(var_name)} environment variable when activated.
+
+This setting is found in the following files:
+{cyan(act_file_name)}
+{cyan(deact_file_name)}
+""")
+    else:
+        print(
+f"""{yellow('NOTE')}: Set the following environment variable before using this installation:")
+
+export {var_name}={lib_dir}
+
+Otherwise, you may encounter errors such as:
+ "pyOptSparse Error: There was an error importing the compiled IPOPT module"
+""")
+
+    announce('SUCCESS!')
+    exit(0)
+
 def perform_install():
     """ Initiate all the required actions in the script. """
     initialize()
@@ -864,7 +919,7 @@ def perform_install():
         early_exit = True
 
     if opts['uninstall_conda_pkgs']:
-        pass
+        uninstall_conda_pkgs()
         early_exit = True
 
     if early_exit is True:
@@ -874,9 +929,10 @@ def perform_install():
 
     if opts['linear_solver'] == 'mumps':
         install_with_mumps()
-        install_pyoptsparse()
+        install_pyoptsparse_from_src()
     elif opts['linear_solver'] == 'pardiso':
         install_with_pardiso()
     elif opts['linear_solver'] == 'hsl':
         install_with_hsl()
 
+    post_build_success()
