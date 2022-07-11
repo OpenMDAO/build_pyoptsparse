@@ -1,13 +1,20 @@
 from distutils.core import setup
 from setuptools import find_packages
 
+optional_dependencies = {
+    'paropt': [
+        'cython',
+        'mpi4py'
+    ]
+}
+
 setup(name='build_pyoptsparse',
     version='0.1',
     license='Apache License',
     packages=find_packages(),
     python_requires=">=3.7",
     install_requires=[
-        'ansicolor',
+        'ansicolors',
         'numpy',
         'sqlitedict'
     ],
@@ -27,5 +34,6 @@ setup(name='build_pyoptsparse',
             'build-pyoptsparse = build_pyoptsparse:perform_install',
             'build_pyoptsparse = build_pyoptsparse:perform_install',
         ]
-    }
+    },
+    extras_require=optional_dependencies
 )
