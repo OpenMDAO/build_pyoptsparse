@@ -38,7 +38,8 @@ sys_info = {
     'msg_color': 'gray',
     'gnu_sanity_check_done': False,
     'python_sanity_check_done': False,
-    'compile_cores': int(os.cpu_count()/2)
+    'compile_cores': int(os.cpu_count()/2),
+    'sys_name': platform.system()
 }
 
 # Where to find each package, which branch to use if obtained by git,
@@ -517,9 +518,21 @@ def install_paropt_from_src():
 
     # Use build defaults as per ParOpt instructions:
     Path('Makefile.in.info').rename('Makefile.in')
-    make_install(make_args=[f'PAROPT_DIR={Path.cwd()}'], do_install=False)
+    make_vars =  [f'PAROPT_DIR={Path.cwd()}']
+    if sys_info['sys_name'] == 'Darwin':
+        make_vars.extend(['SO_EXT=dylib', 'SO_LINK_FLAGS=-fPIC -dynamiclib'])
+    else:
+        make_vars.extend(['SO_EXT=so', 'SO_LINK_FLAGS=-fPIC -shared'])
+
+    make_install(make_args=make_vars, do_install=False)
     note('Installing with pip')
     run_cmd(cmd_list=['python','-m','pip','install','./'])
+    lib_dest_dir = Path(opts['prefix']) / 'lib'
+
+    lib_files = sorted(Path('lib').glob('libparopt*'))
+    for lib in lib_files:
+        shutil.copy2(str(lib), str(lib_dest_dir))
+    
     popd()
 
 def install_ipopt_from_src(config_opts:list):
@@ -858,8 +871,7 @@ def post_build_success():
     announce("The pyOptSparse build is complete")
 
     lib_dir = Path(opts['prefix']) / 'lib'
-    sys_name = platform.system()
-    if sys_name == 'Darwin':
+    if sys_info['sys_name'] == 'Darwin':
         var_name = 'DYLD_LIBRARY_PATH'
     else:
         var_name = 'LD_LIBRARY_PATH'
@@ -936,3 +948,6 @@ def perform_install():
         install_with_hsl()
 
     post_build_success()
+
+if __name__ == "__main__":
+    perform_install()
