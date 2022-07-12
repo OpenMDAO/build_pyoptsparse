@@ -39,7 +39,10 @@ sys_info = {
     'gnu_sanity_check_done': False,
     'python_sanity_check_done': False,
     'compile_cores': int(os.cpu_count()/2),
-    'sys_name': platform.system()
+    'sys_name': platform.system(),
+    'conda_activate_dir': None,
+    'conda_deactivate_dir': None,
+    'conda_env_script': 'pyoptsparse_lib.sh'
 }
 
 # Where to find each package, which branch to use if obtained by git,
@@ -199,6 +202,10 @@ def process_command_line():
     opts['uninstall_built'] = args.uninstall_built
     opts['uninstall_conda_pkgs'] = args.uninstall_conda_pkgs
     opts['verbose'] = args.verbose
+
+    if conda_is_active():
+        sys_info['conda_activate_dir'] = Path(opts['prefix']) / 'etc' / 'conda' / 'activate.d'
+        sys_info['conda_deactivate_dir'] = Path(opts['prefix']) / 'etc' / 'conda' / 'deactivate.d'
 
 def announce(msg):
     """ Print an important message in color with a line above and below. """
@@ -742,6 +749,17 @@ def uninstall_paropt_and_pyoptsparse():
     except ImportError:
         pass
 
+def remove_conda_scripts():
+    """ Remove the conda activate/deactivate scripts if they exist. """
+    if conda_is_active():
+        note("Removing conda activate/deactivate scripts")
+        act_path = Path(sys_info['conda_activate_dir']) / sys_info['conda_env_script']
+        if act_path.is_file(): act_path.unlink()
+
+        deact_path = Path(sys_info['conda_deactivate_dir']) / sys_info['conda_env_script']
+        if deact_path.is_file(): deact_path.unlink()
+        note_ok()
+
 def uninstall_built():
     """ Attempt to remove files that were previously installed when building from source. """
     uninstall_paropt_and_pyoptsparse()
@@ -749,13 +767,17 @@ def uninstall_built():
     for build_key in ['ipopt', 'hsl', 'mumps', 'metis']:
         uninstall_built_item(build_key)
 
+    remove_conda_scripts()
+
 def uninstall_conda_pkgs():
     """ Attempt to remove packages previously installed by conda. """
 
     for pkg in ['ipopt','mumps','metis']:
         note(f"Removing {pkg.upper()} conda package")
-    run_cmd(cmd_list=['conda','uninstall','-y',pkg], do_check=False)
-    note_ok()
+        run_cmd(cmd_list=['conda','uninstall','-y',pkg], do_check=False)
+        note_ok()
+
+    remove_conda_scripts()
 
 def check_compiler_sanity():
     """ Build and run programs written in C, C++, and FORTRAN to test the compilers. """
@@ -863,8 +885,61 @@ def finish_setup():
     if opts['hsl_tar_file'] is not None:
         opts['hsl_tar_file'] = str(Path(opts['hsl_tar_file']).resolve())
 
+
     if opts['check_sanity']:
         check_sanity()
+
+def install_conda_scripts(var_name:str, lib_dir:Path):
+    """
+    Create conda activate/deactivate scripts to set dynamic linker search path.
+
+    Parameters
+    ----------
+    var_name : str
+        The name of the dynamic linker environment variable.
+    lib_dir : Path
+        The location of the shared library files.
+    """
+    bash_path = which('bash')
+
+    sys_info['conda_activate_dir'].mkdir(parents=True, exist_ok=True)
+    act_file_name = str(sys_info['conda_activate_dir'] / sys_info['conda_env_script'])
+    with open(act_file_name, 'w', encoding="utf-8") as f:
+        f.write(
+f"""#!{bash_path}
+if [ -z "${var_name}" ]; then
+    export {var_name}="{str(lib_dir)}"
+else
+    # Preserve previous settings
+    export OLD_{var_name}="${var_name}"
+    export {var_name}="{str(lib_dir)}:${var_name}"
+fi
+""")
+
+    sys_info['conda_deactivate_dir'].mkdir(parents=True, exist_ok=True)
+    deact_file_name = str(sys_info['conda_deactivate_dir'] / sys_info['conda_env_script'])
+    with open(deact_file_name, 'w', encoding="utf-8") as f:
+        f.write(
+f"""#!{bash_path}
+if [ -z "$OLD_{var_name}" ]; then
+    unset {var_name}
+else
+    # Restore previous setting
+    {var_name}="$OLD_{var_name}"
+    unset OLD_{var_name}
+fi
+""")        
+
+    print(
+f"""Your {cyan(os.environ['CONDA_DEFAULT_ENV'])} conda environment has been updated to automatically 
+set the {yellow(var_name)} environment variable when activated.
+
+This setting is found in the following files:
+{cyan(act_file_name)}
+{cyan(deact_file_name)}
+
+You can {color(f'source {act_file_name} ', 'orange', '#3a3a3a')} to set it now.
+""")
 
 def post_build_success():
     """ Announce successful build and print some instructions. """
@@ -877,36 +952,7 @@ def post_build_success():
         var_name = 'LD_LIBRARY_PATH'
     
     if conda_is_active():
-        #TODO: Remove these files during uninstall
-        bash_path = which('bash')
-
-        act_dir = Path(opts['prefix']) / 'etc' / 'conda' / 'activate.d'
-        act_dir.mkdir(parents=True, exist_ok=True)
-        act_file_name = str(act_dir / 'pyoptsparse_lib.sh')
-        with open(act_file_name, 'w', encoding="utf-8") as f:
-            f.write(
-f"""#!{bash_path}
-export OLD_{var_name}="${var_name}"
-export {var_name}="{str(lib_dir)}:${var_name}"
-""")
-
-        deact_dir = Path(opts['prefix']) / 'etc' / 'conda' / 'deactivate.d'
-        deact_dir.mkdir(parents=True, exist_ok=True)
-        deact_file_name = str(deact_dir / 'pyoptsparse_lib.sh')
-        with open(deact_file_name, 'w', encoding="utf-8") as f:
-            f.write(
-f"""#!{bash_path}
-export {var_name}="$OLD_{var_name}"
-""")        
-
-        print(
-f"""Your {cyan(os.environ['CONDA_DEFAULT_ENV'])} conda environment has been updated to automatically 
-set the {yellow(var_name)} environment variable when activated.
-
-This setting is found in the following files:
-{cyan(act_file_name)}
-{cyan(deact_file_name)}
-""")
+        install_conda_scripts(var_name, lib_dir)
     else:
         print(
 f"""{yellow('NOTE')}: Set the following environment variable before using this installation:")
