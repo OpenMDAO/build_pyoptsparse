@@ -204,7 +204,7 @@ def process_command_line():
     opts['uninstall_conda_pkgs'] = args.uninstall_conda_pkgs
     opts['verbose'] = args.verbose
 
-    if conda_is_active():
+    if allow_install_with_conda()():
         sys_info['conda_activate_dir'] = Path(opts['prefix']) / 'etc' / 'conda' / 'activate.d'
         sys_info['conda_deactivate_dir'] = Path(opts['prefix']) / 'etc' / 'conda' / 'deactivate.d'
 
@@ -890,7 +890,6 @@ def finish_setup():
     if opts['hsl_tar_file'] is not None:
         opts['hsl_tar_file'] = str(Path(opts['hsl_tar_file']).resolve())
 
-
     if opts['check_sanity']:
         check_sanity()
 
@@ -956,7 +955,7 @@ def post_build_success():
     else:
         var_name = 'LD_LIBRARY_PATH'
     
-    if conda_is_active():
+    if allow_install_with_conda():
         install_conda_scripts(var_name, lib_dir)
     else:
         print(
