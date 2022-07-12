@@ -83,7 +83,8 @@ build_info = {
     },
     'paropt': {
         'branch': 'v2.0.2',
-        'url': 'https://github.com/smdogroup/paropt.git'
+        'url': 'https://github.com/smdogroup/paropt.git',
+        'src_lib_glob': 'libparopt*',
     }
 }
 
@@ -699,35 +700,38 @@ export IPOPT_LIB={opts["prefix"]}/lib
 def uninstall_built_item(build_key:str):
     """ Uninstall a specific item that was previously built from source code. """
     d = build_info[build_key]
-    inc_dir = Path(opts['prefix']) / 'include' / 'coin-or' / d['include_subdir']
 
-    if 'include_glob_list' in d:
-    # If there's a list of glob patterns, remove found files individually instead
-    # of removing an entire include subdirectory:
-        for glob_item in d['include_glob_list']:
-            for inc_file in sorted(Path(inc_dir).glob(glob_item)):
-                Path(inc_file).unlink()
+    if 'include_subdir' in d:
+        inc_dir = Path(opts['prefix']) / 'include' / 'coin-or' / d['include_subdir']
 
-        try:
-            inc_dir.rmdir()
-        except:
-            pass
-    else:
-    # If there's no chance that other include files will be installed in the same
-    # folder, just remove the whole subdirectory.
-        if inc_dir.is_dir():
-            note(f'Removing {build_key.upper()} include directory')
-            shutil.rmtree(inc_dir)
-            note_ok()
+        if 'include_glob_list' in d:
+        # If there's a list of glob patterns, remove found files individually instead
+        # of removing an entire include subdirectory:
+            for glob_item in d['include_glob_list']:
+                for inc_file in sorted(Path(inc_dir).glob(glob_item)):
+                    Path(inc_file).unlink()
+
+            try:
+                inc_dir.rmdir()
+            except:
+                pass
+        else:
+        # If there's no chance that other include files will be installed in the same
+        # folder, just remove the whole subdirectory.
+            if inc_dir.is_dir():
+                note(f'Removing {build_key.upper()} include directory')
+                shutil.rmtree(inc_dir)
+                note_ok()
 
     # Remove individual library files.
-    lib_dir = Path(opts['prefix']) / 'lib'
-    lib_file_list = sorted(lib_dir.glob(d['src_lib_glob']))
-    if len(lib_file_list) > 0:
-        note(f'Removing {build_key.upper()} library files')
-        for lib_file in lib_file_list:
-            Path(lib_file).unlink()
-        note_ok()
+    if 'src_lib_glob' in d:
+        lib_dir = Path(opts['prefix']) / 'lib'
+        lib_file_list = sorted(lib_dir.glob(d['src_lib_glob']))
+        if len(lib_file_list) > 0:
+            note(f'Removing {build_key.upper()} library files')
+            for lib_file in lib_file_list:
+                Path(lib_file).unlink()
+            note_ok()
 
 def uninstall_paropt_and_pyoptsparse():
     """ Both ParOpt and pyOptSparse were installed with pip. """
@@ -743,9 +747,10 @@ def uninstall_paropt_and_pyoptsparse():
     # PAROPT
     try:
         import paropt
-        note('Removing PAROPT')
+        note('Removing PAROPT package')
         run_cmd(cmd_list=['pip','uninstall','-y','paropt'])
         note_ok()
+        uninstall_built_item('paropt')
     except ImportError:
         pass
 
