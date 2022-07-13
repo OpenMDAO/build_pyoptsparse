@@ -71,7 +71,7 @@ options:
     must be available.
 
     Examples:
-    build_pyoptsparse.py
-    build_pyoptsparse.py --intel --linear-solver=pardiso
-    build_pyoptsparse.py -l hsl -n -t ../../coinhsl-archive-2014.01.17.tar.gz
+    build_pyoptsparse
+    build_pyoptsparse --intel --linear-solver=pardiso
+    build_pyoptsparse -l hsl -n -t ../../coinhsl-archive-2014.01.17.tar.gz
  ```
