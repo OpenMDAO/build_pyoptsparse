@@ -191,11 +191,11 @@ def process_command_line():
     build_info['pyoptsparse']['branch'] = args.branch
     
     # Determine conda settings
-    opts['ignore_mamba'] = args.ignore_mamba
     opts['ignore_conda'] = args.ignore_conda
+    opts['ignore_mamba'] = args.ignore_mamba
 
-    if opts['ignore_conda'] is False and conda_is_active() is True:
-        if 'conda_cmd' in args:
+    if opts['ignore_conda'] is False and conda_is_active():
+        if args.conda_cmd is not None:
             opts['conda_cmd'] = args.conda_cmd
         else:
             if opts['ignore_mamba'] is True or which('mamba') is None:
