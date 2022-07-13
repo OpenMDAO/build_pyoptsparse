@@ -611,6 +611,10 @@ def install_ipopt_from_src(config_opts:list=None):
 
     build_dir = git_clone('ipopt')
     cnf_cmd_list = ['./configure', f'--prefix={opts["prefix"]}', '--disable-java']
+    
+    # Don't accidentally use PARDISO if it wasn't selected:
+    if opts['linear_solver'] != 'pardiso': cnf_cmd_list.append('--disable-pardisomkl')
+    
     if config_opts is not None: cnf_cmd_list.extend(config_opts)
     note("Running configure")
     run_cmd(cmd_list=cnf_cmd_list)
