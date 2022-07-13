@@ -1009,6 +1009,7 @@ def perform_install():
 
     if opts['uninstall']:
         announce('Uninstalling pyOptSparse and related packages')
+        print(f'{yellow("NOTE:")} Some items may be listed even if not installed.')
         if opts['ignore_conda'] is False: uninstall_conda_pkgs()
         uninstall_built()
         exit(0)
