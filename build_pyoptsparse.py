@@ -204,7 +204,7 @@ def process_command_line():
     opts['uninstall_conda_pkgs'] = args.uninstall_conda_pkgs
     opts['verbose'] = args.verbose
 
-    if allow_install_with_conda()():
+    if allow_install_with_conda():
         sys_info['conda_activate_dir'] = Path(opts['prefix']) / 'etc' / 'conda' / 'activate.d'
         sys_info['conda_deactivate_dir'] = Path(opts['prefix']) / 'etc' / 'conda' / 'deactivate.d'
 
