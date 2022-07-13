@@ -27,8 +27,7 @@ opts = {
     'ignore_conda': False,
     'verbose': False,
     'compile_required': True, # Not set directly by the user, but determined from other options
-    'uninstall_built': False,
-    'uninstall_conda_pkgs': False
+    'uninstall': False
 }
 
 # Information about the host, status, and constants
@@ -163,18 +162,12 @@ def process_command_line():
                         to the tar file of the HSL source. \
                         E.g. -t ../../coinhsl-archive-2014.01.17.tar.gz",
                         default=opts['hsl_tar_file'])
-    parser.add_argument("--uninstall-built",
-                        help="Attempt to remove an installation previously \
-                              built from source using the same --prefix. \
-                              Default: Do not uninstall",
+    parser.add_argument("-u", "--uninstall",
+                        help="Attempt to remove an installation previously built from source \
+                              (using the same --prefix) or installed with conda in the same \
+                              environment, then exit. Default: Do not uninstall",
                         action="store_true",
-                        default=opts['uninstall_built'])
-    parser.add_argument("--uninstall-conda-pkgs",
-                        help="Attempt to remove packages metis, mumps, ipopt, \
-                        and pyoptsparse installed previously by conda in the same env. \
-                        Default: Do not uninstall",
-                        action="store_true",
-                        default=opts['uninstall_conda_pkgs'])
+                        default=opts['uninstall'])
     parser.add_argument("-v", "--verbose",
                         help="Show output from git, configure, make, etc.",
                         action="store_true",
@@ -200,8 +193,7 @@ def process_command_line():
     opts['build_pyoptsparse'] = not args.no_install
     opts['snopt_dir'] = args.snopt_dir
     opts['hsl_tar_file'] = args.hsl_tar_file
-    opts['uninstall_built'] = args.uninstall_built
-    opts['uninstall_conda_pkgs'] = args.uninstall_conda_pkgs
+    opts['uninstall'] = args.uninstall
     opts['verbose'] = args.verbose
 
     if allow_install_with_conda():
@@ -777,12 +769,13 @@ def uninstall_built():
 def uninstall_conda_pkgs():
     """ Attempt to remove packages previously installed by conda. """
 
-    for pkg in ['ipopt','mumps','metis']:
-        note(f"Removing {pkg.upper()} conda package")
-        run_cmd(cmd_list=['conda','uninstall','-y',pkg], do_check=False)
-        note_ok()
+    if conda_is_active():
+        for pkg in ['ipopt','mumps','metis']:
+            note(f"Removing {pkg.upper()} conda package")
+            run_cmd(cmd_list=['conda','uninstall','-y',pkg], do_check=False)
+            note_ok()
 
-    remove_conda_scripts()
+        remove_conda_scripts()
 
 def check_compiler_sanity():
     """ Build and run programs written in C, C++, and FORTRAN to test the compilers. """
@@ -975,16 +968,9 @@ def perform_install():
     initialize()
     process_command_line()
 
-    early_exit = False
-    if opts['uninstall_built']:
-        uninstall_built()
-        early_exit = True
-
-    if opts['uninstall_conda_pkgs']:
+    if opts['uninstall']:
         uninstall_conda_pkgs()
-        early_exit = True
-
-    if early_exit is True:
+        uninstall_built()
         exit(0)
 
     finish_setup()
