@@ -194,7 +194,7 @@ def process_command_line():
     opts['ignore_mamba'] = args.ignore_mamba
     opts['ignore_conda'] = args.ignore_conda
 
-    if opts['ignore_conda'] is False or conda_is_active() is False:
+    if opts['ignore_conda'] is False and conda_is_active() is True:
         if 'conda_cmd' in args:
             opts['conda_cmd'] = args.conda_cmd
         else:
@@ -878,9 +878,10 @@ def check_sanity():
     if allow_install_with_conda():
         cpre = os.environ['CONDA_PREFIX']
         if re.search('intelpython', cpre) is not None:
-            print(f'{color("WARNING", "orange")}: $CONDA_PREFIX points to:')
+            print(f'{yellow("WARNING")}: $CONDA_PREFIX points to:')
             print(' ' * 9 + code(cpre))
-            print(' ' * 9 + 'This is associated with Intel OneAPI and may not be intended.')
+            print('This is associated with Intel OneAPI and may not be intended.')
+            print()
 
     if opts['compile_required'] is True:
         required_cmds.extend(['make', 'git', os.environ['CC'], os.environ['CXX'], os.environ['FC']])
