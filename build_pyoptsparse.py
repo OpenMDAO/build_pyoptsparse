@@ -203,11 +203,6 @@ def process_command_line():
             else:
                 opts['conda_cmd'] = 'mamba'
 
-        cpre = os.environ['CONDA_PREFIX']
-        if re.search('intelpython', cpre) is not None:
-            print(f'{color("WARNING", "orange")}: $CONDA_PREFIX points to {code(cpre)}.')
-            print(' ' * 10 + 'This is associated with Intel OneAPI and may not be intended.')
-
     opts['keep_build_dir'] = args.no_delete
     opts['force_build'] = args.force_build
     opts['check_sanity'] = not args.no_sanity_check
@@ -879,6 +874,13 @@ def check_sanity():
     required_cmds = []
 
     print(f'Using {code(subst_env_for_path(opts["prefix"]))} for install prefix')
+
+    if allow_install_with_conda():
+        cpre = os.environ['CONDA_PREFIX']
+        if re.search('intelpython', cpre) is not None:
+            print(f'{color("WARNING", "orange")}: $CONDA_PREFIX points to:')
+            print(' ' * 9 + code(cpre))
+            print(' ' * 9 + 'This is associated with Intel OneAPI and may not be intended.')
 
     if opts['compile_required'] is True:
         required_cmds.extend(['make', 'git', os.environ['CC'], os.environ['CXX'], os.environ['FC']])
