@@ -1,13 +1,18 @@
 # build_pyoptsparse
-This is a script that was written to overcome the complexities of building pyOptSparse with IPOPT. It downloads and installs dependencies, IPOPT itself, and pyOptSparse. It was designed with support for OpenMDAO in mind. The behavior of the script can be adjusted with various command-line switches.
+This script was written to overcome the complexities of building pyOptSparse with IPOPT. It downloads and installs dependencies, IPOPT itself, and pyOptSparse. It was designed with support for OpenMDAO in mind. Its behavior can be adjusted with various command-line switches.
 
 Support for **conda** and **venv** is included and will be used if either has been activated. In both cases, software will be installed under the virtual environment folder. If a conda environment is active and **mamba** is available, it will be used to install/uninstall to improve performance.
 
-For dependencies that require building, temporary directories are used and removed by default after the item has been installed.
+For dependencies that require building, temporary directories are used then removed by default after the item has been installed.
 
 By default, MUMPS is used as the linear solver, but if HSL or PARDISO are available, one of those can be selected instead.
 
 The script performs sanity checking on the environment by testing for commands that are required to build or install pyOptSparse and it dependencies.
+
+To install:
+1. Configure your virtual environment
+2. Download the repository with git
+3. Run `python -m pip install ./build_pyoptsparse`
 
 ## Usage
 ```
