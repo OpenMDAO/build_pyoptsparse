@@ -668,7 +668,7 @@ def install_with_hsl():
 def install_with_pardiso():
     """ Build IPOPT with the PARDISO linear solver. """
     # install_ipopt_from_src(config_opts=['--with-lapack=-mkl'])
-    install_ipopt_from_src(config_opts=['--with-pardiso'])
+    install_ipopt_from_src()
 
     # pyOptSparse doesn't do well with Intel compilers, so unset:
     # select_gnu_compiler()
