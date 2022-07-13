@@ -25,6 +25,7 @@ opts = {
     'conda_cmd': 'conda',
     'force_build': False,
     'ignore_conda': False,
+    'ignore_mamba': False,
     'verbose': False,
     'compile_required': True, # Not set directly by the user, but determined from other options
     'uninstall': False
@@ -95,6 +96,10 @@ def process_command_line():
     Download, configure, build, and/or install pyOptSparse with IPOPT support and
     dependencies. Temporary working directories are created, which are removed
     after installation unless -d is used.
+    
+    When running under conda, all packages that can be installed with conda will
+    be, except when command line arguments modify this behavior. If found, mamba
+    will be used to install/uninstall unless -m is used.
             ''',
         epilog='''
     NOTES:
@@ -118,9 +123,8 @@ def process_command_line():
                         Default: {build_info['pyoptsparse']['branch']}",
                         default=build_info['pyoptsparse']['branch'])
     parser.add_argument("-c", "--conda-cmd",
-                        help=f"Command to install packages with if conda is used \
-                              (e.g. {yellow('mamba')}). Default: {opts['conda_cmd']}",
-                        default=opts['conda_cmd'])
+                        help=f"Command to install packages with if conda is used. \
+                               Default: {opts['conda_cmd']}")
     parser.add_argument("-d", "--no-delete",
                         help="Do not erase the build directories after completion.",
                         action="store_true",
@@ -147,6 +151,11 @@ def process_command_line():
                         help="Which linear solver to use with IPOPT. Default: mumps",
                         choices=['mumps', 'hsl', 'pardiso'],
                         default=opts['linear_solver'])
+    parser.add_argument("-m", "--ignore-mamba",
+                        help="Do not use mamba to install conda packages. \
+                              Default: Use mamba if found",
+                        action="store_true",
+                        default=opts['ignore_mamba'])
     parser.add_argument("-n", "--no-install",
                         help=f"Prepare, but do {yellow('not')} build/install pyOptSparse itself. \
                                Default: install",
@@ -180,9 +189,26 @@ def process_command_line():
     # Update options with user selections
     opts['include_paropt'] = args.paropt
     build_info['pyoptsparse']['branch'] = args.branch
-    opts['conda_cmd'] = args.conda_cmd
-    opts['keep_build_dir'] = args.no_delete
+    
+    # Determine conda settings
+    opts['ignore_mamba'] = args.ignore_mamba
     opts['ignore_conda'] = args.ignore_conda
+
+    if opts['ignore_conda'] is False or conda_is_active() is False:
+        if 'conda_cmd' in args:
+            opts['conda_cmd'] = args.conda_cmd
+        else:
+            if opts['ignore_mamba'] is True or which('mamba') is None:
+                opts['conda_cmd'] = 'conda'
+            else:
+                opts['conda_cmd'] = 'mamba'
+
+        cpre = os.environ['CONDA_PREFIX']
+        if re.search('intelpython', cpre) is not None:
+            print(f'{color("WARNING", "orange")}: $CONDA_PREFIX points to {code(cpre)}.')
+            print(' ' * 10 + 'This is associated with Intel OneAPI and may not be intended.')
+
+    opts['keep_build_dir'] = args.no_delete
     opts['force_build'] = args.force_build
     opts['check_sanity'] = not args.no_sanity_check
     opts['linear_solver'] = args.linear_solver
