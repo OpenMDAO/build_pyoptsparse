@@ -833,6 +833,12 @@ def uninstall_conda_pkgs():
             run_cmd(cmd_list=[opts['conda_cmd'],'uninstall','-y',pkg], do_check=False)
             note_ok()
 
+def display_environment():
+    announce("Relevant environment variables")
+    for ev in ['CONDA_PREFIX','VIRTUAL_ENV','TMPDIR','TMP_DIR','TEMP_DIR']:
+        if ev in os.environ:
+            print(f'{cyan(ev)}: {code(os.environ[ev])}')
+
 def check_compiler_sanity():
     """ Build and run programs written in C, C++, and FORTRAN to test the compilers. """
     build_dir = tempfile.TemporaryDirectory()
@@ -956,6 +962,8 @@ def finish_setup():
 
     if opts['hsl_tar_file'] is not None:
         opts['hsl_tar_file'] = str(Path(opts['hsl_tar_file']).resolve())
+
+    display_environment()
 
     if opts['check_sanity']:
         check_sanity()
