@@ -12,7 +12,8 @@ The script performs sanity checking on the environment by testing for commands t
 To install:
 1. Activate your virtual environment
 2. Git clone the repository
-3. Run `python -m pip install ./build_pyoptsparse`. If ParOpt support is desired, run `python -m pip install './build_pyoptsparse[paropt]'`
+3. Run `python -m pip install ./build_pyoptsparse`.  
+If ParOpt support is desired, run `python -m pip install './build_pyoptsparse[paropt]'`
 
 ## Usage
 ```
