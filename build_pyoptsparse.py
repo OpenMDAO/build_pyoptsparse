@@ -576,7 +576,7 @@ def install_paropt_from_src():
 
     popd()
 
-def install_ipopt_from_src(config_opts:list):
+def install_ipopt_from_src(config_opts:list=None):
     """
     Git clone the IPOPT repo, build the library, and install it and the include files.
 
@@ -590,7 +590,7 @@ def install_ipopt_from_src(config_opts:list):
 
     build_dir = git_clone('ipopt')
     cnf_cmd_list = ['./configure', f'--prefix={opts["prefix"]}', '--disable-java']
-    cnf_cmd_list.extend(config_opts)
+    if config_opts is not None: cnf_cmd_list.extend(config_opts)
     note("Running configure")
     run_cmd(cmd_list=cnf_cmd_list)
     note_ok()
