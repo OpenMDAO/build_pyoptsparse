@@ -110,7 +110,7 @@ def process_command_line():
 
     Examples:
     build_pyoptsparse.py
-    build_pyoptsparse.py -l pardiso
+    build_pyoptsparse.py --intel --linear-solver=pardiso
     build_pyoptsparse.py -l hsl -n -t ../../coinhsl-archive-2014.01.17.tar.gz
     '''
     )
