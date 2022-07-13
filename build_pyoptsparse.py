@@ -118,15 +118,16 @@ def process_command_line():
                         Default: {build_info['pyoptsparse']['branch']}",
                         default=build_info['pyoptsparse']['branch'])
     parser.add_argument("-c", "--conda-cmd",
-                        help=f"Command to install packages with if conda is used. \
-                            Default: {opts['conda_cmd']}",
+                        help=f"Command to install packages with if conda is used \
+                              (e.g. {yellow('mamba')}). Default: {opts['conda_cmd']}",
                         default=opts['conda_cmd'])
     parser.add_argument("-d", "--no-delete",
                         help="Do not erase the build directories after completion.",
                         action="store_true",
                         default=opts['keep_build_dir'])
     parser.add_argument("-e", "--ignore-conda",
-                        help="Don't install conda packages or install under conda environment.",
+                        help="Do not install conda packages, install under conda environment, \
+                              or uninstall from the conda environment.",
                         action="store_true",
                         default=opts['ignore_conda'])
     parser.add_argument("-f", "--force-build",
@@ -139,7 +140,7 @@ def process_command_line():
                         action="store_true",
                         default=not opts['check_sanity'])
     parser.add_argument("-i", "--intel",
-                        help="Use the Intel compiler suite instead of GNU.",
+                        help="Build with the Intel compiler suite instead of GNU.",
                         action="store_true",
                         default=opts['intel_compiler_suite'])
     parser.add_argument("-l", "--linear-solver",
@@ -147,8 +148,8 @@ def process_command_line():
                         choices=['mumps', 'hsl', 'pardiso'],
                         default=opts['linear_solver'])
     parser.add_argument("-n", "--no-install",
-                        help="Prepare, but do NOT build/install pyOptSparse itself. \
-                              Default: install",
+                        help=f"Prepare, but do {yellow('not')} build/install pyOptSparse itself. \
+                               Default: install",
                         action="store_true",
                         default=not opts['build_pyoptsparse'])
     parser.add_argument("-p", "--prefix",
@@ -164,12 +165,13 @@ def process_command_line():
                         default=opts['hsl_tar_file'])
     parser.add_argument("-u", "--uninstall",
                         help="Attempt to remove an installation previously built from source \
-                              (using the same --prefix) or installed with conda in the same \
+                              (using the same --prefix) and/or installed with conda in the same \
                               environment, then exit. Default: Do not uninstall",
                         action="store_true",
                         default=opts['uninstall'])
     parser.add_argument("-v", "--verbose",
-                        help="Show output from git, configure, make, etc.",
+                        help="Show output from git, configure, make, conda, etc. and expand \
+                              all environment variables.",
                         action="store_true",
                         default=opts['verbose'])
 
@@ -705,7 +707,7 @@ def install_pyoptsparse_from_src():
     build_dir = git_clone('pyoptsparse')
 
     os.environ['IPOPT_INC'] = get_coin_inc_dir()
-    os.environ['IPOPT_LIB'] = f'{opts["prefix"]}/lib'
+    os.environ['IPOPT_LIB'] = str(Path(opts["prefix"]) / 'lib')
     os.environ['CFLAGS'] = '-Wno-implicit-function-declaration -std=c99'
 
     # Pull in SNOPT source:
@@ -716,14 +718,12 @@ def install_pyoptsparse_from_src():
     if opts['build_pyoptsparse'] is True:
         pip_install(pip_install_args=['--no-cache-dir', './'])
     else:
+        announce('Not building pyOptSparse by request')
         print(f"""
-{LINE}
-{yellow('Not')} building pyOptSparse by request. Make sure to set
-these environment variables before building it yourself:
+Make sure to set these environment variables before building it yourself:
 
-export IPOPT_INC={opts["prefix"]}/include/coin-or
-export IPOPT_LIB={opts["prefix"]}/lib
-{LINE}
+{code(f'export IPOPT_INC={subst_env_for_path(os.environ["IPOPT_INC"])}')}
+{code(f'export IPOPT_LIB={subst_env_for_path(os.environ["IPOPT_LIB"])}')}
         """)
 
     popd()
@@ -1014,6 +1014,8 @@ def perform_install():
         exit(0)
 
     finish_setup()
+
+    announce('Beginning installation')
 
     if opts['linear_solver'] == 'mumps':
         install_with_mumps()
