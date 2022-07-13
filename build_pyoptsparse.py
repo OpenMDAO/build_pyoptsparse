@@ -770,23 +770,14 @@ def uninstall_built_item(build_key:str):
 def uninstall_paropt_and_pyoptsparse():
     """ Both ParOpt and pyOptSparse were installed with pip. """
     # Uninstall pyOptSparse
-    try:
-        import pyoptsparse
-        note('Removing pyOptSparse')
-        run_cmd(cmd_list=['pip','uninstall','-y','pyOptSparse'])
-        note_ok()
-    except ImportError:
-        pass   
+    note('Removing pyOptSparse')
+    run_cmd(cmd_list=['pip','uninstall','-y','pyOptSparse'], do_check=False)
+    note_ok()
 
-    # PAROPT
-    try:
-        import paropt
-        note('Removing PAROPT package')
-        run_cmd(cmd_list=['pip','uninstall','-y','paropt'])
-        note_ok()
-        uninstall_built_item('paropt')
-    except ImportError:
-        pass
+    note('Removing PAROPT package')
+    run_cmd(cmd_list=['pip','uninstall','-y','paropt'], do_check=False)
+    note_ok()
+    uninstall_built_item('paropt')
 
 def remove_conda_scripts():
     """ Remove the conda activate/deactivate scripts if they exist. """
@@ -806,7 +797,7 @@ def uninstall_built():
     for build_key in ['ipopt', 'hsl', 'mumps', 'metis']:
         uninstall_built_item(build_key)
 
-    remove_conda_scripts()
+    if opts['ignore_conda'] is False: remove_conda_scripts()
 
 def uninstall_conda_pkgs():
     """ Attempt to remove packages previously installed by conda. """
@@ -816,8 +807,6 @@ def uninstall_conda_pkgs():
             note(f"Removing {pkg.upper()} conda package")
             run_cmd(cmd_list=[opts['conda_cmd'],'uninstall','-y',pkg], do_check=False)
             note_ok()
-
-        remove_conda_scripts()
 
 def check_compiler_sanity():
     """ Build and run programs written in C, C++, and FORTRAN to test the compilers. """
