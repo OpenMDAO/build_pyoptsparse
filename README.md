@@ -10,9 +10,9 @@ By default, MUMPS is used as the linear solver, but if HSL or PARDISO are availa
 The script performs sanity checking on the environment by testing for commands that are required to build or install pyOptSparse and it dependencies.
 
 To install:
-1. Configure your virtual environment
-2. Download the repository with git
-3. Run `python -m pip install ./build_pyoptsparse`
+1. Activate your virtual environment
+2. Git clone the repository
+3. Run `python -m pip install ./build_pyoptsparse`. If ParOpt support is desired, run `python -m pip install './build_pyoptsparse[paropt]'`
 
 ## Usage
 ```
