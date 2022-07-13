@@ -23,7 +23,7 @@ opts = {
     'keep_build_dir': False,
     'check_sanity': True,
     'conda_cmd': 'conda',
-    'force_rebuild': False,
+    'force_build': False,
     'ignore_conda': False,
     'verbose': False,
     'compile_required': True, # Not set directly by the user, but determined from other options
@@ -66,7 +66,7 @@ build_info = {
         'url': 'https://github.com/coin-or/Ipopt.git',
         'src_lib_glob': 'lib*ipopt*',
         'include_subdir': '.',
-        'include_glob_list': ['Ip*.hpp', 'Sens*.hpp'],
+        'include_glob_list': ['Ip*.hpp', 'Sens*.hpp', 'Ip*.h', 'Ip*.inc'],
         'include_file': 'IpoptConfig.h'
     },
     'pyoptsparse': {
@@ -126,14 +126,14 @@ def process_command_line():
                         action="store_true",
                         default=opts['keep_build_dir'])
     parser.add_argument("-e", "--ignore-conda",
-                        help="Build from source even if conda is found.",
+                        help="Don't install conda packages or install under conda environment.",
                         action="store_true",
                         default=opts['ignore_conda'])
-    parser.add_argument("-f", "--force-rebuild",
-                        help="If building a package from source, \
-                              rebuild even if it's found to be installed.",
+    parser.add_argument("-f", "--force-build",
+                        help="Build/rebuild packages even if found to be installed or \
+                              can be installed with conda.",
                         action="store_true",
-                        default=opts['force_rebuild'])
+                        default=opts['force_build'])
     parser.add_argument("-k", "--no-sanity-check",
                         help="Skip the sanity checks.",
                         action="store_true",
@@ -152,7 +152,7 @@ def process_command_line():
                         action="store_true",
                         default=not opts['build_pyoptsparse'])
     parser.add_argument("-p", "--prefix",
-                        help=f"Where to install. Default: {opts['prefix']}",
+                        help=f"Where to install if not a conda/venv environment. Default: {opts['prefix']}",
                         default=opts['prefix'])
     parser.add_argument("-s", "--snopt-dir",
                         help="Include SNOPT from SNOPT-DIR. Default: no SNOPT",
@@ -181,7 +181,7 @@ def process_command_line():
     opts['conda_cmd'] = args.conda_cmd
     opts['keep_build_dir'] = args.no_delete
     opts['ignore_conda'] = args.ignore_conda
-    opts['force_rebuild'] = args.force_rebuild
+    opts['force_build'] = args.force_build
     opts['check_sanity'] = not args.no_sanity_check
     opts['linear_solver'] = args.linear_solver
     if opts['linear_solver'] == 'pardiso':
@@ -196,15 +196,18 @@ def process_command_line():
     opts['uninstall'] = args.uninstall
     opts['verbose'] = args.verbose
 
-    if allow_install_with_conda():
-        sys_info['conda_activate_dir'] = Path(opts['prefix']) / 'etc' / 'conda' / 'activate.d'
-        sys_info['conda_deactivate_dir'] = Path(opts['prefix']) / 'etc' / 'conda' / 'deactivate.d'
+def announce(msg:str):
+    """
+    Print an important message in color with a line above and below.
 
-def announce(msg):
-    """ Print an important message in color with a line above and below. """
-    print("%s\n%s\n%s" %(LINE, color(msg, sys_info['msg_color']), LINE))
+    Parameters
+    ----------
+    msg : str
+        The information to be printed.
+    """
+    print(color(f' {msg} '.center(79, '-'), '#d0d0d0', 'blue'))
 
-def note(msg):
+def note(msg:str):
     """
     Print a quick status message. If not in verbose mode, do not terminate with
     a newline because the result of the operation will print after.
@@ -225,18 +228,28 @@ def note_ok():
     if opts['verbose'] is False:
         print(green('OK'))
 
+def code(msg:str)->str:
+    """
+    Create a message with "code" hilighting.
+
+    Parameters
+    ----------
+    msg : str
+        The information to be printed.
+    """
+    return color(msg, 'orange', style='underline')
+
 def initialize():
     """ Perform a collection of setup tasks """
     global dir_stack
     dir_stack = []
 
-    if conda_is_active():
+    if allow_install_with_conda():
         opts['prefix']=os.environ['CONDA_PREFIX']
+        sys_info['conda_activate_dir'] = Path(opts['prefix']) / 'etc' / 'conda' / 'activate.d'
+        sys_info['conda_deactivate_dir'] = Path(opts['prefix']) / 'etc' / 'conda' / 'deactivate.d'
     elif venv_is_active():
         opts['prefix']=os.environ['VIRTUAL_ENV']
-
-    global LINE
-    LINE = color('=' * 78, fg=sys_info['line_color'])
 
 def conda_is_active() -> bool:
     """ Determine if a conda environment is active. """
@@ -244,11 +257,36 @@ def conda_is_active() -> bool:
 
 def allow_install_with_conda() -> bool:
     """ Determine if we can install with conda. """
-    return conda_is_active() and not opts['ignore_conda']
+    return conda_is_active() and (opts['ignore_conda'] is False)
 
 def venv_is_active() -> bool:
     """ Determine if a Python virtual environment is active. """
     return ('VIRTUAL_ENV' in os.environ)
+
+def subst_env_for_path(path:str)->str:
+    """
+    If a well-known env var is the initial part of the path, substitute the name
+    of that var to make it easier to read.
+
+    Parameters
+    ----------
+    path : str
+        The path to check for environment variables.
+    
+    Returns
+    -------
+    str
+        The possibly updated path.
+    """
+
+    if opts['verbose'] is True: return path
+
+    for testvar in ['TMPDIR', 'TMP_DIR', 'TEMP_DIR', 'CONDA_PREFIX', 'VIRTUAL_ENV']:
+        if testvar in os.environ and re.match(os.environ[testvar], path) is not None:
+            new_path = PurePath(re.sub(os.environ[testvar], f'${testvar}/', path))
+            return str(new_path)
+
+    return path
 
 def run_cmd(cmd_list, do_check=True):
     """
@@ -302,7 +340,7 @@ def run_conda_cmd(cmd_args):
     cmd_list.extend(cmd_args)
     run_cmd(cmd_list)
 
-def pip_install(pip_install_args):
+def pip_install(pip_install_args, pkg_desc='packages'):
     """
     Shorthand for performing a 'pip install' operation. 
 
@@ -316,7 +354,7 @@ def pip_install(pip_install_args):
     if opts['verbose'] is False:
         cmd_list.append('-q')
     cmd_list.extend(pip_install_args)
-    note('Installing packages with pip')
+    note(f'Installing {pkg_desc} with pip')
     run_cmd(cmd_list)
     note_ok()
 
@@ -345,13 +383,13 @@ def pushd(dirname):
     """
     dir_stack.append(str(Path.cwd()))
     os.chdir(dirname)
-    print(f'Changed directory to {str(blue(Path.cwd()))}')
+    print(f'Changed directory to {code(str(subst_env_for_path(dirname)))}')
 
 def popd():
     """ Change to the top directory name on the stack of names. """
     dirname = dir_stack.pop()
     os.chdir(dirname)
-    print(f'Changed directory back to {blue(dirname)}')
+    print(f'Changed directory back to {code(subst_env_for_path(dirname))}')
 
 def get_coin_inc_dir()->str:
     """
@@ -433,7 +471,7 @@ def git_clone(build_key:str):
 
 def allow_build(build_key:str) -> bool:
     """
-    Determine whether the specified package should be installed with conda or built from source.
+    Determine whether the specified package should be built from source.
 
     Parameters
     ----------
@@ -443,7 +481,7 @@ def allow_build(build_key:str) -> bool:
     Returns
     -------
     bool
-        True if the package should be built, false if installed by conda.    
+        True if the package is not yet installed or force_build is true, false if already built.
     """
     coin_dir = get_coin_inc_dir()
     if coin_dir is None:
@@ -451,7 +489,7 @@ def allow_build(build_key:str) -> bool:
     else:
         d = build_info[build_key]
         include_file = Path(coin_dir) / d['include_subdir'] / d['include_file']
-        build_ok = opts['force_rebuild'] or not include_file.is_file()
+        build_ok = opts['force_build'] or not include_file.is_file()
 
     if build_ok is False:
         print(f"{build_key.upper()} is already installed under {opts['prefix']}, {yellow('skipping build')}.")
@@ -474,7 +512,7 @@ def install_metis_from_src():
 
 def install_metis():
     """ Install METIS either through conda or building. """
-    if allow_install_with_conda():
+    if allow_install_with_conda() and opts['force_build'] is False:
         install_conda_pkg('metis')
     else:
         install_metis_from_src()
@@ -525,14 +563,15 @@ def install_paropt_from_src():
         make_vars.extend(['SO_EXT=so', 'SO_LINK_FLAGS=-fPIC -shared'])
 
     make_install(make_args=make_vars, do_install=False)
-    note('Installing with pip')
-    run_cmd(cmd_list=['python','-m','pip','install','./'])
-    lib_dest_dir = Path(opts['prefix']) / 'lib'
+    pip_install(['./'], pkg_desc='build')
 
+    lib_dest_dir = str(Path(opts['prefix']) / 'lib')
+    note(f'Copying library files to {code(subst_env_for_path(lib_dest_dir))}')
     lib_files = sorted(Path('lib').glob('libparopt*'))
     for lib in lib_files:
-        shutil.copy2(str(lib), str(lib_dest_dir))
-    
+        shutil.copy2(str(lib), lib_dest_dir)
+    note_ok()
+
     popd()
 
 def install_ipopt_from_src(config_opts:list):
@@ -559,7 +598,7 @@ def install_ipopt_from_src(config_opts:list):
 def install_with_mumps():
     """ Install METIS, MUMPS, and IPOPT. """
     install_metis()
-    if allow_install_with_conda():
+    if allow_install_with_conda() and opts['force_build'] is False:
         install_conda_pkg('mumps')
         install_conda_pkg('ipopt')
     else:
@@ -695,10 +734,11 @@ def uninstall_built_item(build_key:str):
 
     if 'include_subdir' in d:
         inc_dir = Path(opts['prefix']) / 'include' / 'coin-or' / d['include_subdir']
-
         if 'include_glob_list' in d:
         # If there's a list of glob patterns, remove found files individually instead
         # of removing an entire include subdirectory:
+            note(f'Removing {build_key.upper()} include files')
+
             for glob_item in d['include_glob_list']:
                 for inc_file in sorted(Path(inc_dir).glob(glob_item)):
                     Path(inc_file).unlink()
@@ -707,6 +747,8 @@ def uninstall_built_item(build_key:str):
                 inc_dir.rmdir()
             except:
                 pass
+
+            note_ok()
         else:
         # If there's no chance that other include files will be installed in the same
         # folder, just remove the whole subdirectory.
@@ -748,7 +790,7 @@ def uninstall_paropt_and_pyoptsparse():
 
 def remove_conda_scripts():
     """ Remove the conda activate/deactivate scripts if they exist. """
-    if conda_is_active():
+    if conda_is_active() and opts['ignore_conda'] is False:
         note("Removing conda activate/deactivate scripts")
         act_path = Path(sys_info['conda_activate_dir']) / sys_info['conda_env_script']
         if act_path.is_file(): act_path.unlink()
@@ -772,7 +814,7 @@ def uninstall_conda_pkgs():
     if conda_is_active():
         for pkg in ['ipopt','mumps','metis']:
             note(f"Removing {pkg.upper()} conda package")
-            run_cmd(cmd_list=['conda','uninstall','-y',pkg], do_check=False)
+            run_cmd(cmd_list=[opts['conda_cmd'],'uninstall','-y',pkg], do_check=False)
             note_ok()
 
         remove_conda_scripts()
@@ -798,6 +840,12 @@ def check_compiler_sanity():
     run_cmd(cmd_list=['./hello_cxx'])
     note_ok()
 
+    if opts['include_paropt']:
+        note(f'Testing mpicxx')
+        run_cmd(cmd_list=['mpicxx', '-o', 'hello_cxx_mpi', 'hello.cc'])
+        run_cmd(cmd_list=['./hello_cxx_mpi'])
+        note_ok()
+
     note(f'Testing {os.environ["FC"]}')
     with open('hello.f90', 'w', encoding="utf-8") as f:
         f.write("program hello\n  print *, 'fortran works!'\nend program hello")
@@ -814,6 +862,8 @@ def check_sanity():
 
     errors = []
     required_cmds = []
+
+    print(f'Using {code(subst_env_for_path(opts["prefix"]))} for install prefix')
 
     if opts['compile_required'] is True:
         required_cmds.extend(['make', 'git', os.environ['CC'], os.environ['CXX'], os.environ['FC']])
@@ -932,10 +982,10 @@ f"""Your {cyan(os.environ['CONDA_DEFAULT_ENV'])} conda environment has been upda
 set the {yellow(var_name)} environment variable when activated.
 
 This setting is found in the following files:
-{cyan(act_file_name)}
-{cyan(deact_file_name)}
+{code(subst_env_for_path(act_file_name))}
+{code(subst_env_for_path(deact_file_name))}
 
-You can {color(f'source {act_file_name} ', 'orange', '#3a3a3a')} to set it now.
+Run {code(f'source {subst_env_for_path(act_file_name)}')} to set it now.
 """)
 
 def post_build_success():
@@ -952,9 +1002,9 @@ def post_build_success():
         install_conda_scripts(var_name, lib_dir)
     else:
         print(
-f"""{yellow('NOTE')}: Set the following environment variable before using this installation:")
+f"""{yellow('NOTE')}: Set the following environment variable before using this installation:
 
-export {var_name}={lib_dir}
+{code(f'export {var_name}={subst_env_for_path(str(lib_dir))}')}
 
 Otherwise, you may encounter errors such as:
  "pyOptSparse Error: There was an error importing the compiled IPOPT module"
@@ -965,11 +1015,12 @@ Otherwise, you may encounter errors such as:
 
 def perform_install():
     """ Initiate all the required actions in the script. """
-    initialize()
     process_command_line()
+    initialize()
 
     if opts['uninstall']:
-        uninstall_conda_pkgs()
+        announce('Uninstalling pyOptSparse and related packages')
+        if opts['ignore_conda'] is False: uninstall_conda_pkgs()
         uninstall_built()
         exit(0)
 
