@@ -878,10 +878,12 @@ def check_sanity():
     if allow_install_with_conda():
         cpre = os.environ['CONDA_PREFIX']
         if re.search('intelpython', cpre) is not None:
-            print(f'{yellow("WARNING")}: $CONDA_PREFIX points to:')
-            print(' ' * 9 + code(cpre))
-            print('This is associated with Intel OneAPI and may not be intended.')
-            print()
+            print(f"""
+{yellow("WARNING")}: $CONDA_PREFIX points to:
+{' ' * 9 + code(cpre)}
+This is associated with Intel OneAPI and may cause the installation to fail.
+If it does, set up Intel OneAPI {yellow('before')} activating your conda env.
+"""[1:])
 
     if opts['compile_required'] is True:
         required_cmds.extend(['make', 'git', os.environ['CC'], os.environ['CXX'], os.environ['FC']])
