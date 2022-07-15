@@ -57,7 +57,7 @@ options:
   -o, --no-ipopt        Do not install IPOPT. Default: install IPOPT
   -p PREFIX, --prefix PREFIX
                         Where to install if not a conda/venv environment. Default:
-                        /Users/tkollar/pyoptsparse
+                        $HOME/pyoptsparse
   -s SNOPT_DIR, --snopt-dir SNOPT_DIR
                         Include SNOPT from SNOPT-DIR. Default: no SNOPT
   -t HSL_TAR_FILE, --hsl-tar-file HSL_TAR_FILE
