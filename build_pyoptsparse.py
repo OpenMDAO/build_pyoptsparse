@@ -13,13 +13,14 @@ from shutil import which
 
 # Default options that the user can change with command line switches
 opts = {
-    'prefix': str(Path(Path.home() / 'ipopt')),
+    'prefix': str(Path(Path.home() / 'pyoptsparse')),
     'linear_solver': 'mumps',
     'build_pyoptsparse': True,
     'intel_compiler_suite': False,
     'snopt_dir': None,
     'hsl_tar_file': None,
     'include_paropt': False,
+    'include_ipopt': True,
     'keep_build_dir': False,
     'check_sanity': True,
     'conda_cmd': 'conda',
@@ -93,13 +94,13 @@ def process_command_line():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description='''
-    Download, configure, build, and/or install pyOptSparse with IPOPT support and
-    dependencies. Temporary working directories are created, which are removed
-    after installation unless -d is used.
+    Download, configure, build, and/or install pyOptSparse with dependencies.
+    Temporary working directories are created, which are removed after
+    installation unless -d is used.
     
-    When running under conda, all packages that can be installed with conda will
-    be, except when command line arguments modify this behavior. If found, mamba
-    will be used to install/uninstall unless -m is used.
+    When running with a conda environment active, all packages that can be installed
+    with conda will be, except when command line arguments modify this behavior. If
+    found, mamba will be used to install/uninstall unless -m is invoked.
             ''',
         epilog='''
     NOTES:
@@ -109,9 +110,9 @@ def process_command_line():
     must be available.
 
     Examples:
-    build_pyoptsparse.py
-    build_pyoptsparse.py --intel --linear-solver=pardiso
-    build_pyoptsparse.py -l hsl -n -t ../../coinhsl-archive-2014.01.17.tar.gz
+    build_pyoptsparse
+    build_pyoptsparse --intel --linear-solver=pardiso
+    build_pyoptsparse -l hsl -n -t ../../coinhsl-archive-2014.01.17.tar.gz
     '''
     )
     parser.add_argument("-a", "--paropt",
@@ -161,6 +162,10 @@ def process_command_line():
                                Default: install",
                         action="store_true",
                         default=not opts['build_pyoptsparse'])
+    parser.add_argument("-o", "--no-ipopt",
+                        help="Do not install IPOPT. Default: install IPOPT",
+                        action="store_true",
+                        default=not opts['include_ipopt']),
     parser.add_argument("-p", "--prefix",
                         help=f"Where to install if not a conda/venv environment. Default: {opts['prefix']}",
                         default=opts['prefix'])
@@ -188,6 +193,7 @@ def process_command_line():
 
     # Update options with user selections
     opts['include_paropt'] = args.paropt
+    opts['include_ipopt'] = not args.no_ipopt
     build_info['pyoptsparse']['branch'] = args.branch
     
     # Determine conda settings
@@ -606,7 +612,7 @@ def install_ipopt_from_src(config_opts:list=None):
     config_opts : list
         Additional options to use with the IPOPT configure script.
     """
-    if not allow_build('ipopt'):
+    if not allow_build('ipopt') or opts['include_ipopt'] is False:
         return
 
     build_dir = git_clone('ipopt')
@@ -627,7 +633,7 @@ def install_with_mumps():
     install_metis()
     if allow_install_with_conda() and opts['force_build'] is False:
         install_conda_pkg('mumps')
-        install_conda_pkg('ipopt')
+        if opts['include_ipopt'] is True: install_conda_pkg('ipopt')
     else:
         install_mumps_from_src()
         coin_dir = get_coin_inc_dir()
@@ -731,8 +737,9 @@ def install_pyoptsparse_from_src():
 
     build_dir = git_clone('pyoptsparse')
 
-    os.environ['IPOPT_INC'] = get_coin_inc_dir()
-    os.environ['IPOPT_LIB'] = str(Path(opts["prefix"]) / 'lib')
+    if opts['include_ipopt'] is True:
+        os.environ['IPOPT_INC'] = get_coin_inc_dir()
+        os.environ['IPOPT_LIB'] = str(Path(opts["prefix"]) / 'lib')
     os.environ['CFLAGS'] = '-Wno-implicit-function-declaration -std=c99'
 
     # Pull in SNOPT source:
@@ -744,12 +751,13 @@ def install_pyoptsparse_from_src():
         pip_install(pip_install_args=['--no-cache-dir', './'])
     else:
         announce('Not building pyOptSparse by request')
-        print(f"""
+        if opts['include_ipopt'] is True:
+            print(f"""
 Make sure to set these environment variables before building it yourself:
 
 {code(f'export IPOPT_INC={subst_env_for_path(os.environ["IPOPT_INC"])}')}
 {code(f'export IPOPT_LIB={subst_env_for_path(os.environ["IPOPT_LIB"])}')}
-        """)
+                   """)
 
     popd()
 
@@ -1033,7 +1041,8 @@ def post_build_success():
     if allow_install_with_conda():
         install_conda_scripts(var_name, lib_dir)
     else:
-        print(
+        if opts['include_ipopt'] is True:
+            print(
 f"""{yellow('NOTE')}: Set the following environment variable before using this installation:
 
 {code(f'export {var_name}={subst_env_for_path(str(lib_dir))}')}

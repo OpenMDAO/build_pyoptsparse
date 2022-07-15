@@ -1,13 +1,17 @@
 # build_pyoptsparse
-This script was written to overcome the complexities of building pyOptSparse with IPOPT. It downloads and installs dependencies, IPOPT itself, and pyOptSparse. It was designed with support for OpenMDAO in mind. Its behavior can be adjusted with various command-line switches.
+This script was written to overcome the complexities of building pyOptSparse and IPOPT. It can download and install IPOPT and other dependencies and pyOptSparse itself. This behavior can be adjusted with various command-line switches.
 
-Support for **conda** and **venv** is included and will be used if either has been activated. In both cases, software will be installed under the virtual environment folder. If a conda environment is active and **mamba** is available, it will be used to install/uninstall to improve performance.
+Support for **conda** and will be used if either has been activated, unless disabled by command line arguments. In both cases, software will be installed under the virtual environment folder. If a conda environment is active and **mamba** is available, it will be used to install/uninstall to improve performance.
+
+Alternatively, if a **venv** environement is active, the script will install to that virtual environment's folder.
 
 For dependencies that require building, temporary directories are used then removed by default after the item has been installed.
 
 By default, MUMPS is used as the linear solver, but if HSL or PARDISO are available, one of those can be selected instead.
 
-The script performs sanity checking on the environment by testing for commands that are required to build or install pyOptSparse and it dependencies.
+The script performs checks the environment by testing for commands that are required to build or install pyOptSparse and it dependencies.
+
+If you have a previous installation of pyOptSparse and its dependencies and are encountering errors when running this script, try using the --uninstall switch first to remove old include/library files.
 
 To install:
 1. Activate your virtual environment
@@ -18,16 +22,16 @@ If ParOpt support is desired, run `python -m pip install './build_pyoptsparse[pa
 ## Usage
 ```
 usage: build_pyoptsparse [-h] [-a] [-b BRANCH] [-c CONDA_CMD] [-d] [-e] [-f] [-k] [-i]
-                         [-l {mumps,hsl,pardiso}] [-m] [-n] [-p PREFIX] [-s SNOPT_DIR]
+                         [-l {mumps,hsl,pardiso}] [-m] [-n] [-o] [-p PREFIX] [-s SNOPT_DIR]
                          [-t HSL_TAR_FILE] [-u] [-v]
 
-    Download, configure, build, and/or install pyOptSparse with IPOPT support and
-    dependencies. Temporary working directories are created, which are removed
-    after installation unless -d is used.
+    Download, configure, build, and/or install pyOptSparse with dependencies.
+    Temporary working directories are created, which are removed after
+    installation unless -d is used.
 
-    When running under conda, all packages that can be installed with conda will
-    be, except when command line arguments modify this behavior. If found, mamba
-    will be used to install/uninstall unless -m is used.
+    When running with a conda environment active, all packages that can be installed
+    with conda will be, except when command line arguments modify this behavior. If
+    found, mamba will be used to install/uninstall unless -m is invoked.
 
 
 options:
@@ -50,9 +54,10 @@ options:
   -m, --ignore-mamba    Do not use mamba to install conda packages. Default: Use mamba if found
   -n, --no-install      Prepare, but do not build/install pyOptSparse itself. Default:
                         install
+  -o, --no-ipopt        Do not install IPOPT. Default: install IPOPT
   -p PREFIX, --prefix PREFIX
                         Where to install if not a conda/venv environment. Default:
-                        /Users/tkollar/ipopt
+                        /Users/tkollar/pyoptsparse
   -s SNOPT_DIR, --snopt-dir SNOPT_DIR
                         Include SNOPT from SNOPT-DIR. Default: no SNOPT
   -t HSL_TAR_FILE, --hsl-tar-file HSL_TAR_FILE
