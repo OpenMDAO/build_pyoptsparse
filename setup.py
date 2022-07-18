@@ -26,9 +26,7 @@ setup(name='build_pyoptsparse',
     author='OpenMDAO Team',
     author_email='openmdao@openmdao.org',
     url='http://openmdao.org',
-    package_data={
-        'build_pyoptsparse': [ 'build_pyoptsparse.py' ]
-    },
+    py_modules=['build_pyoptsparse'],
     entry_points={
         'console_scripts': [
             'build-pyoptsparse = build_pyoptsparse:perform_install',
