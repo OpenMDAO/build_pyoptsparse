@@ -30,7 +30,8 @@ opts = {
     'ignore_mamba': False,
     'verbose': False,
     'compile_required': True, # Not set directly by the user, but determined from other options
-    'uninstall': False
+    'uninstall': False,
+    'pyoptsparse_version': None # Parsed pyOptSparse version, set by finish_setup()
 }
 
 # Information about the host, status, and constants
@@ -734,11 +735,8 @@ def copy_snopt_files(build_dirname):
 
 def patch_pyoptsparse_src():
     """ Some versions of pyOptSparse need to be modified slightly to build correctly. """
-    pos_ver_str = build_info['pyoptsparse']['branch']
-    if pos_ver_str[:1] == 'v': pos_ver_str = pos_ver_str[1:] # Drop the initial v
-    pos_ver = parse(pos_ver_str)
     
-    if pos_ver < parse('2.6.3'):
+    if opts['pyoptsparse_version'] < parse('2.6.3'):
         pushd("pyoptsparse/pyIPOPT")
         note("Patching for versions < 2.6.3")
 
@@ -945,6 +943,8 @@ If it does, set up Intel OneAPI {yellow('before')} activating your conda env.
 
     if opts['include_paropt'] is True:
         required_cmds.append('mpicxx')
+        if opts['pyoptsparse_version'] < parse('2.1.2'):
+            errors.append(f"{red('ERROR')}: PAROPT is only supported by pyOptSparse {yellow('v2.1.2')} or newer.")
 
     if opts['snopt_dir'] is not None:
         if not Path(opts['snopt_dir']).is_dir():
@@ -992,6 +992,11 @@ def finish_setup():
     opts['compile_required'] = opts['build_pyoptsparse'] is True or \
                 not (allow_install_with_conda() and opts['snopt_dir'] is None and \
                 opts['include_paropt'] is False and opts['hsl_tar_file'] is None)
+
+    # Set an option with the parsed pyOptSparse version 
+    pos_ver_str = build_info['pyoptsparse']['branch']
+    if pos_ver_str[:1] == 'v': pos_ver_str = pos_ver_str[1:] # Drop the initial v
+    opts['pyoptsparse_version'] = parse(pos_ver_str)
 
     # Change snopt_dir to an absolute path
     if opts['snopt_dir'] is not None:
