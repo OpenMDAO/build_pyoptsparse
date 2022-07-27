@@ -5,6 +5,7 @@
 # build is disabled by command line options).
 #
 # Default values:
+
 PREFIX=$HOME/ipopt
 LINEAR_SOLVER=MUMPS
 BUILD_PYOPTSPARSE=1
@@ -27,6 +28,16 @@ CHECK_COMPILER_FUNCTION=1
 BUILD_TIME=`date +%s`
 LINE="-----------------------------------------------------------------------------"
 CORES=`nproc 2>&1`||CORES=`sysctl -n hw.ncpu 2>&1`||CORES=1
+
+cat <<WARNING
+$LINE
+NOTICE: The original build_pyoptsparse.sh script is deprecated and may be
+removed in the future. New development is focused on the Python version of
+the script from this same repository which can be installed with pip.
+$LINE
+
+WARNING
+sleep 2
 
 # Use only half the available cores for building:
 [ $CORES -gt 1 ] && CORES=$((CORES/2))
