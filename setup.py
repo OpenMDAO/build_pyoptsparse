@@ -16,7 +16,8 @@ setup(name='build_pyoptsparse',
     install_requires=[
         'ansicolors',
         'numpy',
-        'sqlitedict'
+        'sqlitedict',
+        'packaging'
     ],
     description="Automated installer for pyOptSparse",
     long_description="""pyOptSparse has several dependencies which can be tricky

@@ -10,6 +10,7 @@ from pathlib import Path, PurePath
 import tempfile
 from colors import *
 from shutil import which
+from packaging.version import Version, parse
 
 # Default options that the user can change with command line switches
 opts = {
@@ -120,7 +121,7 @@ def process_command_line():
                         action="store_true",
                         default=opts['include_paropt'])
     parser.add_argument("-b", "--branch",
-                        help=f"pyOptSparse git branch. \
+                        help=f"pyOptSparse release. \
                         Default: {build_info['pyoptsparse']['branch']}",
                         default=build_info['pyoptsparse']['branch'])
     parser.add_argument("-c", "--conda-cmd",
@@ -178,7 +179,7 @@ def process_command_line():
                         E.g. -t ../../coinhsl-archive-2014.01.17.tar.gz",
                         default=opts['hsl_tar_file'])
     parser.add_argument("-u", "--uninstall",
-                        help="Attempt to remove an installation previously built from source \
+                        help="Attempt to remove include/lib files previously built from source \
                               (using the same --prefix) and/or installed with conda in the same \
                               environment, then exit. Default: Do not uninstall",
                         action="store_true",
@@ -461,7 +462,7 @@ def get_coin_lib_name(pkg:str)->str:
 
     return None
 
-def git_clone(build_key:str):
+def git_clone(build_key:str, auto_delete:bool=True):
     """
     Create a temporary directory, change to it, and clone the repository associated
     with the specified package key.
@@ -470,6 +471,8 @@ def git_clone(build_key:str):
     ----------
     build_key : str
         A key in the build_info dict with info about the selected package.
+    auto_delete : bool
+        Override the 'keep_build_dir' setting. Auto-delete if true, leave if false.
 
     Returns
     -------
@@ -480,10 +483,10 @@ def git_clone(build_key:str):
     """
     d = build_info[build_key]
     announce(f'Building {build_key.upper()} from source code')
-    if opts['keep_build_dir'] is True:
+    if opts['keep_build_dir'] is True or auto_delete is False:
         build_dir = tempfile.mkdtemp()
         dir_name = build_dir
-        print(f"Remember to delete {blue(dir_name)} afterwards.")
+        print(f"Remember to delete {code(subst_env_for_path(dir_name))} afterwards.")
     else:
         build_dir = tempfile.TemporaryDirectory()
         dir_name = build_dir.name
@@ -729,13 +732,37 @@ def copy_snopt_files(build_dirname):
 
     note_ok()
 
+def patch_pyoptsparse_src():
+    """ Some versions of pyOptSparse need to be modified slightly to build correctly. """
+    pos_ver_str = build_info['pyoptsparse']['branch']
+    if pos_ver_str[:1] == 'v': pos_ver_str = pos_ver_str[1:] # Drop the initial v
+    pos_ver = parse(pos_ver_str)
+    
+    if pos_ver < parse('2.6.3'):
+        pushd("pyoptsparse/pyIPOPT")
+        note("Patching for versions < 2.6.3")
+
+        setup_py_path = Path("setup.py")
+        pos_setup_py = open(str(setup_py_path))
+        data = pos_setup_py.read()
+        pos_setup_py.close()
+        setup_py_path.rename('setup.py.orig')
+
+        new_data = re.sub(r'libraries=.+,', 'libraries=["ipopt"],', data)
+
+        with open(str(setup_py_path), 'w') as setup_py_path:
+            setup_py_path.write(new_data)
+
+        note_ok()
+        popd()
+
 def install_pyoptsparse_from_src():
     """ Git clone the pyOptSparse repo and use pip to install it. """
     # First, build PAROPT if selected:
     if opts['include_paropt'] is True:
         install_paropt_from_src()
 
-    build_dir = git_clone('pyoptsparse')
+    build_dir = git_clone('pyoptsparse', opts['build_pyoptsparse'])
 
     if opts['include_ipopt'] is True:
         os.environ['IPOPT_INC'] = get_coin_inc_dir()
@@ -748,6 +775,7 @@ def install_pyoptsparse_from_src():
         copy_snopt_files(build_dir_str)
 
     if opts['build_pyoptsparse'] is True:
+        patch_pyoptsparse_src()
         pip_install(pip_install_args=['--no-cache-dir', './'])
     else:
         announce('Not building pyOptSparse by request')
@@ -961,7 +989,8 @@ def finish_setup():
         select_gnu_compilers()
 
     # Determine whether any compiling will actually be performed
-    opts['compile_required'] = not (allow_install_with_conda() and opts['snopt_dir'] is None and
+    opts['compile_required'] = opts['build_pyoptsparse'] is True or \
+                not (allow_install_with_conda() and opts['snopt_dir'] is None and \
                 opts['include_paropt'] is False and opts['hsl_tar_file'] is None)
 
     # Change snopt_dir to an absolute path
