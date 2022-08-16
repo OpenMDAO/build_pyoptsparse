@@ -99,7 +99,7 @@ def process_command_line():
     Download, configure, build, and/or install pyOptSparse with dependencies.
     Temporary working directories are created, which are removed after
     installation unless -d is used.
-    
+
     When running with a conda environment active, all packages that can be installed
     with conda will be, except when command line arguments modify this behavior. If
     found, mamba will be used to install/uninstall unless -m is invoked.
@@ -197,7 +197,7 @@ def process_command_line():
     opts['include_paropt'] = args.paropt
     opts['include_ipopt'] = not args.no_ipopt
     build_info['pyoptsparse']['branch'] = args.branch
-    
+
     # Determine conda settings
     opts['ignore_conda'] = args.ignore_conda
     opts['ignore_mamba'] = args.ignore_mamba
@@ -303,7 +303,7 @@ def subst_env_for_path(path:str)->str:
     ----------
     path : str
         The path to check for environment variables.
-    
+
     Returns
     -------
     str
@@ -359,7 +359,7 @@ def make_install(parallel_procs:int=sys_info['compile_cores'], make_args = None,
 
 def run_conda_cmd(cmd_args):
     """
-    Shorthand for performing a conda operation. 
+    Shorthand for performing a conda operation.
 
     Parameters
     ----------
@@ -373,7 +373,7 @@ def run_conda_cmd(cmd_args):
 
 def pip_install(pip_install_args, pkg_desc='packages'):
     """
-    Shorthand for performing a 'pip install' operation. 
+    Shorthand for performing a 'pip install' operation.
 
     Parameters
     ----------
@@ -391,7 +391,7 @@ def pip_install(pip_install_args, pkg_desc='packages'):
 
 def install_conda_pkg(pkg_name:str):
     """
-    Shorthand for performing a 'conda install' operation for a single package. 
+    Shorthand for performing a 'conda install' operation for a single package.
 
     Parameters
     ----------
@@ -621,10 +621,10 @@ def install_ipopt_from_src(config_opts:list=None):
 
     build_dir = git_clone('ipopt')
     cnf_cmd_list = ['./configure', f'--prefix={opts["prefix"]}', '--disable-java']
-    
+
     # Don't accidentally use PARDISO if it wasn't selected:
     if opts['linear_solver'] != 'pardiso': cnf_cmd_list.append('--disable-pardisomkl')
-    
+
     if config_opts is not None: cnf_cmd_list.extend(config_opts)
     note("Running configure")
     run_cmd(cmd_list=cnf_cmd_list)
@@ -724,7 +724,7 @@ def copy_snopt_files(build_dirname):
     all_snopt_files = sorted(Path(snoptc_f_list[0]).parent.glob('*'))
 
     dest_dir = str(Path(build_dirname) / 'pyoptsparse' / 'pySNOPT' / 'source')
-    
+
     exclude_snopth_f = re.compile('.*snopth.f')
     for sfile in all_snopt_files:
         src_file = str(sfile)
@@ -735,7 +735,7 @@ def copy_snopt_files(build_dirname):
 
 def patch_pyoptsparse_src():
     """ Some versions of pyOptSparse need to be modified slightly to build correctly. """
-    
+
     if opts['pyoptsparse_version'] < parse('2.6.3'):
         pushd("pyoptsparse/pyIPOPT")
         note("Patching for versions < 2.6.3")
@@ -774,6 +774,15 @@ def install_pyoptsparse_from_src():
 
     if opts['build_pyoptsparse'] is True:
         patch_pyoptsparse_src()
+
+        # `numpy.distutils` is deprecated since NumPy 1.23.0, as a result
+        # of the deprecation of `distutils` itself. It will be removed for
+        # Python >= 3.12. For older Python versions it will remain present.
+        # It is recommended to use `setuptools < 60.0` for those Python versions.
+        # For more details, see:
+        # https://numpy.org/devdocs/reference/distutils_status_migration.html
+        pip_install(pip_install_args=['setuptools<65.0'])
+
         pip_install(pip_install_args=['--no-cache-dir', './'])
     else:
         announce('Not building pyOptSparse by request')
@@ -979,7 +988,7 @@ def select_gnu_compilers():
     os.environ['CXX'] = 'g++'
     os.environ['FC'] = 'gfortran'
     gcc_ver = subprocess.run(['gcc', '-dumpversion'], capture_output=True)
-    sys_info['gcc_major_ver'] = int(gcc_ver.stdout.decode('UTF-8').split('.')[0])    
+    sys_info['gcc_major_ver'] = int(gcc_ver.stdout.decode('UTF-8').split('.')[0])
 
 def finish_setup():
     """ Finalize settings based on provided options and environment state. """
@@ -993,7 +1002,7 @@ def finish_setup():
                 not (allow_install_with_conda() and opts['snopt_dir'] is None and \
                 opts['include_paropt'] is False and opts['hsl_tar_file'] is None)
 
-    # Set an option with the parsed pyOptSparse version 
+    # Set an option with the parsed pyOptSparse version
     pos_ver_str = build_info['pyoptsparse']['branch']
     if pos_ver_str[:1] == 'v': pos_ver_str = pos_ver_str[1:] # Drop the initial v
     opts['pyoptsparse_version'] = parse(pos_ver_str)
@@ -1049,10 +1058,10 @@ else
     {var_name}="$OLD_{var_name}"
     unset OLD_{var_name}
 fi
-""")        
+""")
 
     print(
-f"""Your {cyan(os.environ['CONDA_DEFAULT_ENV'])} conda environment has been updated to automatically 
+f"""Your {cyan(os.environ['CONDA_DEFAULT_ENV'])} conda environment has been updated to automatically
 set the {yellow(var_name)} environment variable when activated.
 
 This setting is found in the following files:
@@ -1071,7 +1080,7 @@ def post_build_success():
         var_name = 'DYLD_LIBRARY_PATH'
     else:
         var_name = 'LD_LIBRARY_PATH'
-    
+
     if allow_install_with_conda():
         install_conda_scripts(var_name, lib_dir)
     else:
