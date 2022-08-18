@@ -765,6 +765,7 @@ def install_pyoptsparse_from_src():
     if opts['include_ipopt'] is True:
         os.environ['IPOPT_INC'] = get_coin_inc_dir()
         os.environ['IPOPT_LIB'] = str(Path(opts["prefix"]) / 'lib')
+        os.environ['IPOPT_DIR'] = str(Path(opts["prefix"]))
     os.environ['CFLAGS'] = '-Wno-implicit-function-declaration -std=c99'
 
     # Pull in SNOPT source:

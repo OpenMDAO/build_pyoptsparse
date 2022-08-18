@@ -396,6 +396,7 @@ build_pyoptsparse() {
         # Necessary for pyoptsparse to find IPOPT:
         export IPOPT_INC=$PREFIX/include/coin-or
         export IPOPT_LIB=$PREFIX/lib
+        export IPOPT_DIR=$PREFIX
         export CFLAGS='-Wno-implicit-function-declaration' 
         $PY -m pip install --no-cache-dir ./pyoptsparse
     else
