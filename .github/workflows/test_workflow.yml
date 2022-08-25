@@ -23,6 +23,7 @@ jobs:
             PY: '3.10'
             NUMPY: 1.22
             SCIPY: 1.7
+            MPI4PY: true
             PYOPTSPARSE: 'v2.8.3'
             PAROPT: true
             SNOPT: 7.7
@@ -43,6 +44,7 @@ jobs:
             PY: 3
             NUMPY: 1
             SCIPY: 1
+            MPI4PY: true
             PYOPTSPARSE: 'latest'
             PAROPT: true
             SNOPT: 7.7
@@ -53,8 +55,6 @@ jobs:
             PY: 3.8
             NUMPY: 1.22
             SCIPY: 1.7
-            OPENMPI: '4.0'
-            MPI4PY: '3.0'
             PYOPTSPARSE: 'v1.2'
             NO_IPOPT: true
             SNOPT: 7.2
@@ -111,23 +111,13 @@ jobs:
           python -m pip install .
 
       - name: Install MPI
+        if: matrix.MPI4PY
         run: |
           echo "============================================================="
           echo "Install MPI"
           echo "============================================================="
-          if [[ "${{ matrix.OPENMPI }}" ]]; then
-            COMPILERS="cython compilers openmpi-mpicc=${{ matrix.OPENMPI }}"
-          else
-            COMPILERS="cython compilers openmpi-mpicc"
-          fi
 
-          if [[ "${{ matrix.MPI4PY }}" ]]; then
-            MPI4PY="mpi4py=${{ matrix.MPI4PY }}"
-          else
-            MPI4PY="mpi4py"
-          fi
-
-          conda install $COMPILERS $MPI4PY -q -y
+          conda install cython compilers openmpi-mpicc mpi4py -q -y
 
           echo "OMPI_MCA_rmaps_base_oversubscribe=1" >> $GITHUB_ENV
 
