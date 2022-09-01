@@ -1,0 +1,223 @@
+name: Tests
+
+on:
+  # Trigger on push or pull request events for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  tests:
+
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # test baseline versions on Ubuntu
+          - NAME: Ubuntu Baseline
+            OS: ubuntu-latest
+            PY: '3.10'
+            NUMPY: 1.22
+            SCIPY: 1.7
+            MPI4PY: true
+            PYOPTSPARSE: 'v2.8.3'
+            PAROPT: true
+            SNOPT: 7.7
+
+          # # test baseline versions on MacOS
+          # - NAME: MacOS Baseline
+          #   OS: macos-latest
+          #   PY: '3.10'
+          #   NUMPY: 1.22
+          #   SCIPY: 1.7
+          #   PYOPTSPARSE: 'v2.8.3'
+          #   PAROPT: true
+          #   SNOPT: 7.7
+
+          # test latest versions
+          - NAME: Ubuntu Latest
+            OS: ubuntu-latest
+            PY: 3
+            NUMPY: 1
+            SCIPY: 1
+            MPI4PY: true
+            PYOPTSPARSE: 'latest'
+            PAROPT: true
+            SNOPT: 7.7
+
+          # test oldest supported versions
+          - NAME: Ubuntu Oldest
+            OS: ubuntu-latest
+            PY: 3.8
+            NUMPY: 1.22
+            SCIPY: 1.7
+            PYOPTSPARSE: 'v1.2'
+            NO_IPOPT: true
+            SNOPT: 7.2
+
+    runs-on: ${{ matrix.OS }}
+
+    name: ${{ matrix.NAME }}
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - name: Display run details
+        run: |
+          echo "============================================================="
+          echo "Run #${GITHUB_RUN_NUMBER}"
+          echo "Run ID: ${GITHUB_RUN_ID}"
+          echo "Testing: ${GITHUB_REPOSITORY}"
+          echo "Triggered by: ${GITHUB_EVENT_NAME}"
+          echo "Initiated by: ${GITHUB_ACTOR}"
+          echo "============================================================="
+
+      - name: Create SSH key
+        if: matrix.SNOPT
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          sudo chmod 600 ~/.ssh/id_rsa
+          echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: ${{ matrix.PY }}
+          channels: conda-forge,defaults
+          channel-priority: true
+
+      - name: Install
+        run: |
+          conda install numpy=${{ matrix.NUMPY }} scipy=${{ matrix.SCIPY }} -q -y
+
+          python -m pip install --upgrade pip
+
+          echo "============================================================="
+          echo "Install build_pyoptsparse"
+          echo "============================================================="
+          python -m pip install .
+
+      - name: Install MPI
+        if: matrix.MPI4PY
+        run: |
+          echo "============================================================="
+          echo "Install MPI"
+          echo "============================================================="
+
+          conda install cython compilers openmpi-mpicc mpi4py -q -y
+
+          echo "OMPI_MCA_rmaps_base_oversubscribe=1" >> $GITHUB_ENV
+
+      - name: Display environment info
+        run: |
+          conda info
+          conda list
+
+          echo "============================================================="
+          echo "Check installed versions of Python, Numpy and Scipy"
+          echo "============================================================="
+          python -c "import sys; assert str(sys.version).startswith(str(${{ matrix.PY }})), \
+                    f'Python version {sys.version} is not the requested version (${{ matrix.PY }})'"
+
+          python -c "import numpy; assert str(numpy.__version__).startswith(str(${{ matrix.NUMPY }})), \
+                    f'Numpy version {numpy.__version__} is not the requested version (${{ matrix.NUMPY }})'"
+
+          python -c "import scipy; assert str(scipy.__version__).startswith(str(${{ matrix.SCIPY }})), \
+                    f'Scipy version {scipy.__version__} is not the requested version (${{ matrix.SCIPY }})'"
+
+      - name: Build pyOptSparse
+        run: |
+          echo "============================================================="
+          echo "Build pyoptsparse"
+          echo "============================================================="
+
+          if [[ "${{ matrix.PYOPTSPARSE }}" == "latest" ]]; then
+            LATEST_URL=`curl -fsSLI -o /dev/null -w %{url_effective} https://github.com/mdolab/pyoptsparse/releases/latest`
+            LATEST_VER=`echo $LATEST_URL | awk '{split($0,a,"/tag/"); print a[2]}'`
+            BRANCH="-b $LATEST_VER"
+          else
+            BRANCH="-b ${{ matrix.PYOPTSPARSE }}"
+          fi
+
+          if [[ "${{ matrix.PAROPT }}" ]]; then
+            PAROPT="-a"
+          fi
+
+          if [[ "${{ matrix.SNOPT }}" == "7.7" && "${{ secrets.SNOPT_LOCATION_77 }}" ]]; then
+            echo "  > Secure copying SNOPT 7.7 over SSH"
+            mkdir SNOPT
+            scp -qr ${{ secrets.SNOPT_LOCATION_77 }} SNOPT
+            SNOPT="-s SNOPT/src"
+          elif [[ "${{ matrix.SNOPT }}" == "7.2" && "${{ secrets.SNOPT_LOCATION_72 }}" ]]; then
+            echo "  > Secure copying SNOPT 7.2 over SSH"
+            mkdir SNOPT
+            scp -qr ${{ secrets.SNOPT_LOCATION_72 }} SNOPT
+            SNOPT="-s SNOPT/source"
+          elif [[ "${{ matrix.SNOPT }}" ]]; then
+            echo "SNOPT version ${{ matrix.SNOPT }} was requested but source is not available"
+          fi
+
+          if [[ "${{ matrix.LINEAR_SOLVER }}" == "hsl"  ]]; then
+            if "${{ secrets.HSL_LOCATION }}" ]]; then
+              scp -q ${{ secrets.HSL_LOCATION }} hsl.tar.gz
+              LINEAR_SOLVER="-l hsl -t hsl.tar.gz"
+            else
+              echo "---------------------------------------------------------------------------"
+              echo "HSL was requested but source is not available, using default linear solver."
+              echo "---------------------------------------------------------------------------"
+            fi
+          elif [[ "${{  matrix.LINEAR_SOLVER }}" == "pardiso" ]]; then
+            echo "-------------------------------------------------------------------------------"
+            echo "Pardiso requires Intel compilers, which are not installed. The build will fail."
+            echo "-------------------------------------------------------------------------------"
+            LINEAR_SOLVER="-l pardiso"
+          fi
+
+          if [[ "${{ matrix.NO_IPOPT }}" ]]; then
+            NO_IPOPT="--no-ipopt"
+          fi
+
+          build_pyoptsparse -v $BRANCH $PAROPT $SNOPT $NO_IPOPT $LINEAR_SOLVER
+
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+
+      - name: Run tests
+        run: |
+          python -m pip install testflo parameterized six
+
+          echo "============================================================="
+          echo "Run tests from pyoptsparse repository"
+          echo "============================================================="
+          git clone $BRANCH https://github.com/mdolab/pyoptsparse
+          cd pyoptsparse/test*/
+          testflo --pre_announce --show_skipped .
+
+      - name: Audit dependencies
+        run: |
+          python -m pip install pip-audit
+
+          echo "============================================================="
+          echo "Scan environment for packages with known vulnerabilities"
+          echo "============================================================="
+          python -m pip_audit
+
+      - name: Notify slack
+        uses: act10ns/slack@v1
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: ${{ job.status }}
+        if: always()
