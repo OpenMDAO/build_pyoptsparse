@@ -15,7 +15,6 @@ setup(name='build_pyoptsparse',
     python_requires=">=3.7",
     install_requires=[
         'ansicolors',
-        'diff_match_patch',
         'numpy',
         'sqlitedict',
         'packaging'

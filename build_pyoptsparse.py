@@ -6,7 +6,6 @@ import re
 import shutil
 import sys
 import subprocess
-from diff_match_patch import diff_match_patch
 from pathlib import Path, PurePath
 import tempfile
 from colors import *
@@ -32,7 +31,8 @@ opts = {
     'verbose': False,
     'compile_required': True, # Not set directly by the user, but determined from other options
     'uninstall': False,
-    'pyoptsparse_version': None # Parsed pyOptSparse version, set by finish_setup()
+    'pyoptsparse_version': None, # Parsed pyOptSparse version, set by finish_setup()
+    'make_name': 'make'
 }
 
 # Information about the host, status, and constants
@@ -335,6 +335,29 @@ def run_cmd(cmd_list, do_check=True):
     else:
         subprocess.run(cmd_list, check=do_check)
 
+def check_make(errors:list):
+    """
+    Find the best make command and test its viability.
+
+    Parameters
+    ----------
+    errors : list
+        Accumulated pre-check error messages.
+    """
+
+    if 'MAKE' in os.environ:
+        opts['make_name'] = os.environ['MAKE']
+    elif which('gmake') is not None:
+        opts['make_name'] = 'gmake'
+
+    if find_required_command(opts['make_name'], errors):
+        # If the make command is found, test whether it's GNU make
+        cmd_list=[opts['make_name'], '--version']
+        result = subprocess.run(cmd_list, check=False, capture_output=True, text=True)
+
+        if str(result.stdout).find('GNU Make') == -1:
+            print(f'{yellow("WARNING")}: {opts["make_name"]} is not GNU Make. Builds may fail.')
+
 def make_install(parallel_procs:int=sys_info['compile_cores'], make_args = None, do_install=True):
     """
     Run 'make' followed by 'make install' in the current directory.
@@ -347,7 +370,7 @@ def make_install(parallel_procs:int=sys_info['compile_cores'], make_args = None,
     """
     note('Building')
     os.environ['MAKEFLAGS'] = f'-j {str(parallel_procs)}'
-    make_cmd=['make']
+    make_cmd=[opts['make_name']]
     if make_args is not None:
         make_cmd.extend(make_args)
     run_cmd(cmd_list=make_cmd)
@@ -355,7 +378,7 @@ def make_install(parallel_procs:int=sys_info['compile_cores'], make_args = None,
 
     if do_install is True:
         note('Installing')
-        run_cmd(cmd_list=['make','install'])
+        run_cmd(cmd_list=[opts['make_name'],'install'])
         note_ok()
 
 def run_conda_cmd(cmd_args):
@@ -551,6 +574,10 @@ def install_metis():
     else:
         install_metis_from_src()
 
+def check_make_type():
+    """ Determine whether the make command is the GNU version. """
+
+
 def install_mumps_from_src():
     """ Git clone the MUMPS repo, build the library, and install it and the include files. """
     if not allow_build('mumps'):
@@ -575,36 +602,6 @@ def install_mumps_from_src():
     ]
     cnf_cmd_list = ['./configure']
     cnf_cmd_list.extend(config_opts)
-
-    # Rearrange objects in Makefile.in
-    # Without this, some platforms will run into this error:
-    # Fatal Error: Cannot open module file 'dmumps_struc_def.mod' for reading at (1):
-    # No such file or directory. compilation terminated.
-    note("Patching Makefile.in")
-    makefile_path = 'Makefile.in'
-    with open (makefile_path) as f:
-        makefile_text = f.read()
-
-    makefile_diff = '''@@ -3024,24 +3024,76 @@
- mumps_c.c %5C%0A
-+@MUMPS_DOUBLE_TRUE@  MUMPS/src/dmumps_struc_def.F %5C%0A
- @MUMPS_DOUBL
-@@ -7154,60 +7154,8 @@
- F %5C%0A
--@MUMPS_DOUBLE_TRUE@  MUMPS/src/dmumps_struc_def.F %5C%0A
- @MUM
-
-'''
-
-    dmp = diff_match_patch()
-    patch = dmp.patch_fromText(makefile_diff)
-    new_makefile_text, _ = dmp.patch_apply(patch, str(makefile_text))
-
-    with open(makefile_path, 'w') as f:
-        for line in new_makefile_text:
-            f.write(line)
-
-    note_ok()
 
     note("Running configure")
     run_cmd(cmd_list=cnf_cmd_list)
@@ -954,6 +951,26 @@ def check_compiler_sanity():
 
     popd()
 
+def find_required_command(cmd:str, errors:list):
+    """
+    Determine if the command name is in the PATH.
+
+    Parameters
+    ----------
+    cmd : str
+        The name of the command to look for.
+    errors : list
+        Accumulated pre-check error messages.
+    """
+    cmd_path = which(cmd)
+    if cmd_path is None:
+        errors.append(f"{red('ERROR')}: Required command {yellow(cmd)} not found.")
+        return False
+    elif opts['verbose'] is True:
+        print(f"{green('FOUND')}: {cmd} is {cmd_path}")
+    
+    return True
+
 def check_sanity():
     """ Determine if all the required commands are there and can build if necessary. """
     announce("Testing build environment functionality. Can be skipped with -k.")
@@ -974,7 +991,8 @@ If it does, set up Intel OneAPI {yellow('before')} activating your conda env.
 """[1:])
 
     if opts['compile_required'] is True:
-        required_cmds.extend(['make', 'git', os.environ['CC'], os.environ['CXX'], os.environ['FC']])
+        check_make(errors)
+        required_cmds.extend(['git', os.environ['CC'], os.environ['CXX'], os.environ['FC']])
         if opts['build_pyoptsparse'] is True:
             required_cmds.extend(['pip', 'swig'])
     else:
@@ -995,11 +1013,7 @@ If it does, set up Intel OneAPI {yellow('before')} activating your conda env.
             errors.append(f"{red('ERROR')}: SNOPT folder {yellow(opts['snopt_dir'])} does not exist.")
 
     for cmd in required_cmds:
-        cmd_path = which(cmd)
-        if cmd_path is None:
-            errors.append(f"{red('ERROR')}: Required command {yellow(cmd)} not found.")
-        elif opts['verbose'] is True:
-            print(f"{green('FOUND')}: {cmd} is {cmd_path}")
+        find_required_command(cmd, errors)
 
     if len(errors) > 0:
         for err in errors:
