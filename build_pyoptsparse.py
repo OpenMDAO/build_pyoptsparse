@@ -576,27 +576,23 @@ def install_mumps_from_src():
     cnf_cmd_list = ['./configure']
     cnf_cmd_list.extend(config_opts)
 
-    note("Running configure")
-    run_cmd(cmd_list=cnf_cmd_list)
-    note_ok()
-
-    # Rearrange objects in Makefile
+    # Rearrange objects in Makefile.in
     # Without this, some platforms will run into this error:
     # Fatal Error: Cannot open module file 'dmumps_struc_def.mod' for reading at (1):
     # No such file or directory. compilation terminated.
-    note("Patching Makefile")
-    makefile_path = 'MUMPS/src/Makefile'
+    note("Patching Makefile.in")
+    makefile_path = 'Makefile.in'
     with open (makefile_path) as f:
         makefile_text = f.read()
 
-    makefile_diff = '''@@ -2371,16 +2371,51 @@
- D =   %5C%0A
-+        $(ARITH)mumps_struc_def.o%5C%0A
-
-@@ -3391,43 +3391,8 @@
- .o%5C%0A
--        $(ARITH)mumps_struc_def.o%5C%0A
-
+    makefile_diff = '''@@ -3024,24 +3024,76 @@
+ mumps_c.c %5C%0A
++@MUMPS_DOUBLE_TRUE@  MUMPS/src/dmumps_struc_def.F %5C%0A
+ @MUMPS_DOUBL
+@@ -7154,60 +7154,8 @@
+ F %5C%0A
+-@MUMPS_DOUBLE_TRUE@  MUMPS/src/dmumps_struc_def.F %5C%0A
+ @MUM
 
 '''
 
@@ -609,6 +605,12 @@ def install_mumps_from_src():
             f.write(line)
 
     note_ok()
+
+    note("Running configure")
+    run_cmd(cmd_list=cnf_cmd_list)
+    note_ok()
+
+
 
     make_install(1) # MUMPS build can fail with parallel make
     popd()
