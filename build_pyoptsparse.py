@@ -583,20 +583,20 @@ def install_mumps_from_src():
     # Rearrange objects in Makefile
     # Without this, some platforms will run into this error:
     # Fatal Error: Cannot open module file 'dmumps_struc_def.mod' for reading at (1):
-    # No such file or directory
-    # compilation terminated.
+    # No such file or directory. compilation terminated.
     note("Patching Makefile")
     makefile_path = 'MUMPS/src/Makefile'
     with open (makefile_path) as f:
-        makefile_text = f.readlines()
+        makefile_text = f.read()
 
-    makefile_diff = '''@@ -2888,32 +2888,73 @@
- MOD =   %5C%5C%5Cn', '
-+        $(ARITH)mumps_struc_def.o%5C%5C%5Cn', '
-         $(ARITH)
-@@ -4096,49 +4096,8 @@
- ', '
--        $(ARITH)mumps_struc_def.o%5C%5C%5Cn', '
+    makefile_diff = '''@@ -2371,16 +2371,51 @@
+ D =   %5C%0A
++        $(ARITH)mumps_struc_def.o%5C%0A
+
+@@ -3391,43 +3391,8 @@
+ .o%5C%0A
+-        $(ARITH)mumps_struc_def.o%5C%0A
+
 
 '''
 
@@ -607,7 +607,7 @@ def install_mumps_from_src():
     with open(makefile_path, 'w') as f:
         for line in new_makefile_text:
             f.write(line)
-            
+
     note_ok()
 
     make_install(1) # MUMPS build can fail with parallel make
