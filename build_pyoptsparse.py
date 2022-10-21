@@ -6,6 +6,7 @@ import re
 import shutil
 import sys
 import subprocess
+from diff_match_patch import diff_match_patch
 from pathlib import Path, PurePath
 import tempfile
 from colors import *
@@ -578,6 +579,35 @@ def install_mumps_from_src():
     note("Running configure")
     run_cmd(cmd_list=cnf_cmd_list)
     note_ok()
+
+    # Rearrange objects in Makefile
+    # Without this, some platforms will run into this error:
+    # Fatal Error: Cannot open module file 'dmumps_struc_def.mod' for reading at (1):
+    # No such file or directory
+    # compilation terminated.
+    note("Patching Makefile")
+    makefile_path = 'MUMPS/src/Makefile'
+    with open (makefile_path) as f:
+        makefile_text = f.readlines()
+
+    makefile_diff = '''@@ -2888,32 +2888,73 @@
+ MOD =   %5C%5C%5Cn', '
++        $(ARITH)mumps_struc_def.o%5C%5C%5Cn', '
+         $(ARITH)
+@@ -4096,49 +4096,8 @@
+ ', '
+-        $(ARITH)mumps_struc_def.o%5C%5C%5Cn', '
+
+'''
+
+    dmp = diff_match_patch()
+    patch = dmp.patch_fromText(makefile_diff)
+    new_makefile_text, _ = dmp.patch_apply(patch, str(makefile_text))
+
+    with open(makefile_path, 'w') as f:
+        f.write(new_makefile_text)
+    note_ok()
+
     make_install(1) # MUMPS build can fail with parallel make
     popd()
 
