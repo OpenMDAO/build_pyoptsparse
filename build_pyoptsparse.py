@@ -566,7 +566,7 @@ def install_mumps_from_src():
     metis_lib = get_coin_lib_name('metis')
     config_opts = [
         '--with-metis',
-        f'--with-metis-lflags=-L{opts["prefix"]}/lib -l{metis_lib}',
+        f'--with-metis-lflags=-L{opts["prefix"]}/lib -l{metis_lib} -lm',
         f'--with-metis-cflags={cflags}',
         f'--prefix={opts["prefix"]}',
         f'CFLAGS={cflags}',
