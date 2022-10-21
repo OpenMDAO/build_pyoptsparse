@@ -605,7 +605,9 @@ def install_mumps_from_src():
     new_makefile_text, _ = dmp.patch_apply(patch, str(makefile_text))
 
     with open(makefile_path, 'w') as f:
-        f.write(new_makefile_text)
+        for line in new_makefile_text:
+            f.write(line)
+            
     note_ok()
 
     make_install(1) # MUMPS build can fail with parallel make
