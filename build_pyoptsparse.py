@@ -356,7 +356,8 @@ def check_make(errors:list):
         result = subprocess.run(cmd_list, check=False, capture_output=True, text=True)
 
         if str(result.stdout).find('GNU Make') == -1:
-            print(f'{yellow("WARNING")}: {opts["make_name"]} is not GNU Make. Builds may fail.')
+            print(f'{yellow("WARNING")}: {opts["make_name"]} is not GNU Make. '
+                  'Source code builds may fail.')
 
 def make_install(parallel_procs:int=sys_info['compile_cores'], make_args = None, do_install=True):
     """
@@ -574,10 +575,6 @@ def install_metis():
     else:
         install_metis_from_src()
 
-def check_make_type():
-    """ Determine whether the make command is the GNU version. """
-
-
 def install_mumps_from_src():
     """ Git clone the MUMPS repo, build the library, and install it and the include files. """
     if not allow_build('mumps'):
@@ -607,8 +604,6 @@ def install_mumps_from_src():
     run_cmd(cmd_list=cnf_cmd_list)
     note_ok()
 
-
-
     make_install(1) # MUMPS build can fail with parallel make
     popd()
 
@@ -627,7 +622,7 @@ def install_paropt_from_src():
         make_vars.extend(['SO_EXT=so', 'SO_LINK_FLAGS=-fPIC -shared'])
 
     make_install(make_args=make_vars, do_install=False)
-    pip_install(['./'], pkg_desc='build')
+    pip_install(['./'], pkg_desc='paropt')
 
     lib_dest_dir = str(Path(opts['prefix']) / 'lib')
     note(f'Copying library files to {code(subst_env_for_path(lib_dest_dir))}')
@@ -813,9 +808,9 @@ def install_pyoptsparse_from_src():
         # It is recommended to use `setuptools < 60.0` for those Python versions.
         # For more details, see:
         # https://numpy.org/devdocs/reference/distutils_status_migration.html
-        pip_install(pip_install_args=['setuptools<65.0'])
+        pip_install(pip_install_args=['setuptools<65.0'], pkg_desc='setuptools')
 
-        pip_install(pip_install_args=['--no-cache-dir', './'])
+        pip_install(pip_install_args=['--no-cache-dir', './'], pkg_desc='pyoptsparse')
     else:
         announce('Not building pyOptSparse by request')
         if opts['include_ipopt'] is True:
