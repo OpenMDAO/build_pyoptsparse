@@ -1,5 +1,11 @@
 from distutils.core import setup
 from setuptools import find_packages
+import re
+
+__version__ = re.findall(
+    r"""__version__ = ["']+([0-9\.]*)["']+""",
+    open('__init__.py').read(),
+)[0]
 
 optional_dependencies = {
     'paropt': [
@@ -9,7 +15,7 @@ optional_dependencies = {
 }
 
 setup(name='build_pyoptsparse',
-    version='0.1',
+    version=__version__,
     license='Apache License',
     packages=find_packages(),
     python_requires=">=3.7",
