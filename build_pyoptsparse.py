@@ -928,7 +928,7 @@ def display_environment():
         if ev in os.environ:
             print(f'{cyan(ev)}: {code(os.environ[ev])}')
 
-def check_library(libname:str):
+def check_library(libname:str, raise_on_failure=True):
     """
     Determine whether the specified library is available for linking.
 
@@ -951,6 +951,10 @@ def check_library(libname:str):
         note_ok()
     else:
         print(red('not found'))
+        if raise_on_failure is True:
+            raise RuntimeError(f'Cannot continue without {libname} library.')
+
+    popd()
 
     return success
 
@@ -1063,6 +1067,8 @@ If it does, set up Intel OneAPI {yellow('before')} activating your conda env.
 
     if opts['compile_required'] is True:
         check_compiler_sanity()
+        check_library('lapack')
+        check_library('blas')
 
 def select_intel_compilers():
     """ Set environment variables to use Intel compilers. """
