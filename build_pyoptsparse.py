@@ -1070,6 +1070,10 @@ If it does, set up Intel OneAPI {yellow('before')} activating your conda env.
         check_library('lapack')
         check_library('blas')
 
+        if opts['build_pyoptsparse'] is True:
+            if check_library('openblas', raise_on_failure=False) is False:
+                print(f"{yellow('WARNING')}: openblas missing. Required to build scipy on uncommon platforms.")
+
 def select_intel_compilers():
     """ Set environment variables to use Intel compilers. """
     os.environ['CC'] = 'icc'
