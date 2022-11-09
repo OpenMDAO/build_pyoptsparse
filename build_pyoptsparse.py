@@ -320,7 +320,7 @@ def subst_env_for_path(path:str)->str:
 
     return path
 
-def run_cmd(cmd_list, do_check=True):
+def run_cmd(cmd_list, do_check=True, raise_error=True)->bool:
     """
     Run a command with provided arguments. Hide output unless there's an error
     or verbose mode is enabled.
@@ -329,11 +329,30 @@ def run_cmd(cmd_list, do_check=True):
     ----------
     cmd_list : list
         Each token of the command line is a separate member of the list.
+
+    do_check : bool
+        If true, test whether the process returns a non-zero status.
+
+    raise_error: bool
+        Only matters if do_check is true. If false, raise an exception
+        if the process returns a non-zero status. If true, do not raise
+        an exception, but have the function return False.
     """
-    if opts['verbose'] is False:
-        subprocess.run(cmd_list, check=do_check, capture_output=True)
-    else:
-        subprocess.run(cmd_list, check=do_check)
+    success=True
+
+    try:
+        if opts['verbose'] is False:
+            subprocess.run(cmd_list, check=do_check, capture_output=True)
+        else:
+            subprocess.run(cmd_list, check=do_check)
+    except subprocess.CalledProcessError:
+        if raise_error is True:
+            raise subprocess.CalledProcessError
+        else:
+            success=False
+
+    return success
+
 
 def check_make(errors:list):
     """
@@ -909,6 +928,36 @@ def display_environment():
         if ev in os.environ:
             print(f'{cyan(ev)}: {code(os.environ[ev])}')
 
+def check_library(libname:str, raise_on_failure=True):
+    """
+    Determine whether the specified library is available for linking.
+
+    Parameters
+    ----------
+    libname : str
+        The name of the library without the preceding 'lib' or '.a/.so.*/.dll' extension.
+    """
+
+    build_dir = tempfile.TemporaryDirectory()
+    pushd(build_dir.name)
+
+    note(f'Checking for library: {libname}')
+    with open('hello.c', 'w', encoding="utf-8") as f:
+        f.write('#include <stdio.h>\nint main() {\nprintf("cc works!\\n");\nreturn 0;\n}\n')
+
+    success=run_cmd(cmd_list=[os.environ['CC'], '-o', 'hello_c', 'hello.c', f'-l{libname}'],
+                    raise_error=False)
+    if success is True:
+        note_ok()
+    else:
+        print(red('not found'))
+        if raise_on_failure is True:
+            raise RuntimeError(f'Cannot continue without {libname} library.')
+
+    popd()
+
+    return success
+
 def check_compiler_sanity():
     """ Build and run programs written in C, C++, and FORTRAN to test the compilers. """
     build_dir = tempfile.TemporaryDirectory()
@@ -1018,6 +1067,12 @@ If it does, set up Intel OneAPI {yellow('before')} activating your conda env.
 
     if opts['compile_required'] is True:
         check_compiler_sanity()
+        check_library('lapack')
+        check_library('blas')
+
+        if opts['build_pyoptsparse'] is True:
+            if check_library('openblas', raise_on_failure=False) is False:
+                print(f"{yellow('WARNING')}: openblas missing. Required to build scipy on uncommon platforms.")
 
 def select_intel_compilers():
     """ Set environment variables to use Intel compilers. """
