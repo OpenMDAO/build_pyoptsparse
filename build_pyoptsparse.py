@@ -206,6 +206,7 @@ def process_command_line():
     opts['include_paropt'] = args.paropt
     opts['include_ipopt'] = not args.no_ipopt
     build_info['pyoptsparse']['branch'] = args.branch
+    opts['uninstall'] = args.uninstall
 
     # Determine conda settings
     opts['ignore_conda'] = args.ignore_conda
@@ -221,17 +222,18 @@ def process_command_line():
                 opts['conda_cmd'] = 'mamba'
 
         # Make sure conda forge channel is available
-        note('Checking for conda-forge')
-        cmd_list=['info','--unsafe-channels']
-        result = run_conda_cmd(cmd_list)
+        if opts['uninstall'] is False:
+            note('Checking for conda-forge')
+            cmd_list=['info','--unsafe-channels']
+            result = run_conda_cmd(cmd_list)
 
-        if re.search(r'conda.*forge', result.stdout) is not None:
-            sys_info['conda_forge_available'] = True
-            note_ok()
-        else:
-            print(f'{yellow("WARNING")}: The conda-forge channel is not configured, cannot '
-                    'install conda packages. Falling back to building from source.')
-            opts['compile_required'] = True
+            if re.search(r'conda.*forge', result.stdout) is not None:
+                sys_info['conda_forge_available'] = True
+                note_ok()
+            else:
+                print(f'{yellow("WARNING")}: The conda-forge channel is not configured, cannot \
+                        install conda packages. Falling back to building from source.')
+                opts['compile_required'] = True
 
     opts['keep_build_dir'] = args.no_delete
     opts['force_build'] = args.force_build
@@ -247,7 +249,6 @@ def process_command_line():
     opts['build_pyoptsparse'] = not args.no_install
     opts['snopt_dir'] = args.snopt_dir
     opts['hsl_tar_file'] = args.hsl_tar_file
-    opts['uninstall'] = args.uninstall
     opts['verbose'] = args.verbose
 
 def announce(msg:str):
