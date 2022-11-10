@@ -206,7 +206,6 @@ def process_command_line():
     opts['include_paropt'] = args.paropt
     opts['include_ipopt'] = not args.no_ipopt
     build_info['pyoptsparse']['branch'] = args.branch
-    opts['uninstall'] = args.uninstall
 
     # Determine conda settings
     opts['ignore_conda'] = args.ignore_conda
@@ -222,7 +221,7 @@ def process_command_line():
                 opts['conda_cmd'] = 'mamba'
 
         # Make sure conda forge channel is available
-        if opts['uninstall'] is False:
+        if args.uninstall is False:
             note('Checking for conda-forge')
             cmd_list=['info','--unsafe-channels']
             result = run_conda_cmd(cmd_list)
@@ -250,6 +249,8 @@ def process_command_line():
     opts['snopt_dir'] = args.snopt_dir
     opts['hsl_tar_file'] = args.hsl_tar_file
     opts['verbose'] = args.verbose
+    opts['uninstall'] = args.uninstall
+
 
 def announce(msg:str):
     """
@@ -324,7 +325,7 @@ def initialize():
     global dir_stack
     dir_stack = []
 
-    if allow_install_with_conda():
+    if conda_is_active() and (opts['ignore_conda'] is False):
         opts['prefix']=os.environ['CONDA_PREFIX']
         sys_info['conda_activate_dir'] = Path(opts['prefix']) / 'etc' / 'conda' / 'activate.d'
         sys_info['conda_deactivate_dir'] = Path(opts['prefix']) / 'etc' / 'conda' / 'deactivate.d'
