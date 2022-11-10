@@ -298,6 +298,26 @@ def code(msg:str)->str:
     """
     return color(msg, 'orange', style='underline')
 
+def try_fallback(pkg:str, e:Exception):
+    """
+    When a conda package installation fails, this is called to print status info
+    and determine whether it's possible to try building from source.
+
+    Parameters
+    ----------
+    pkg : str
+        The name of the package that failed to install.
+    e : Exception
+        That exception that was caught when the failure occurred.
+    """
+
+    note_failed()
+    if opts['fall_back'] is True:
+        print(yellow(f'Installing {pkg} with conda failed, falling back to source build.'))
+    else:
+        print(yellow('Use the --fall-back switch to build source on failed conda installs.'))
+        raise e    
+
 def initialize():
     """ Perform a collection of setup tasks """
     global dir_stack
@@ -632,9 +652,8 @@ def install_metis():
         try:
             install_conda_pkg('metis')
             return
-        except:
-            note_failed()
-            print(yellow('Installing METIS with conda failed, falling back to source build.'))
+        except Exception as e:
+            try_fallback('METIS', e)
 
     install_metis_from_src()
 
@@ -675,6 +694,7 @@ def install_paropt_from_src():
     Git clone the PAROPT repo, build the library, and install it and the include files.
     """
     build_dir = git_clone('paropt')
+    pip_install(['Cython'], pkg_desc='Cython')
 
     # Use build defaults as per ParOpt instructions:
     Path('Makefile.in.info').rename('Makefile.in')
@@ -734,37 +754,41 @@ def install_ipopt(config_opts:list=None):
         try:
             install_conda_pkg('ipopt')
             return
-        except:
-            note_failed()
-            print(yellow('Installing IPOPT with conda failed, falling back to source build.'))
+        except Exception as e:
+            try_fallback('IPOPT', e)
 
-    install_ipopt_from_src(config_opts=config_opts)    
+    install_ipopt_from_src(config_opts=config_opts)
+
+def install_mumps():
+    """ Install MUMPS either through conda or building. """
+    if allow_install_with_conda() and opts['force_build'] is False:
+        try:
+            install_conda_pkg('mumps')
+            return
+        except Exception as e:
+            try_fallback('MUMPS', e)
+
+    install_mumps_from_src()
 
 def install_with_mumps():
     """ Install METIS, MUMPS, and IPOPT. """
     install_metis()
+    install_mumps()
 
-    if allow_install_with_conda() and opts['force_build'] is False:
-        try:
-            install_conda_pkg('mumps')
-            if opts['include_ipopt'] is True: install_ipopt()
-            return
-        except:
-            note_failed()
-            print(yellow('Installing MUMPS with conda failed, falling back to source build.'))
+    if opts['include_ipopt'] is True: 
+        # Get this info in case we need to build IPOPT from source
+        coin_dir = get_coin_inc_dir()
 
-    install_mumps_from_src()
-    coin_dir = get_coin_inc_dir()
+        mumps_lib = get_coin_lib_name('mumps')
+        ipopt_opts = [
+            '--with-mumps',
+            f'--with-mumps-lflags=-L{opts["prefix"]}/lib -l{mumps_lib}',
+            f'--with-mumps-cflags=-I{coin_dir}/mumps',
+            '--without-asl',
+            '--without-hsl'
+        ]
 
-    mumps_lib = get_coin_lib_name('mumps')
-    ipopt_opts = [
-        '--with-mumps',
-        f'--with-mumps-lflags=-L{opts["prefix"]}/lib -l{mumps_lib}',
-        f'--with-mumps-cflags=-I{coin_dir}/mumps',
-        '--without-asl',
-        '--without-hsl'
-    ]
-    if opts['include_ipopt'] is True: install_ipopt(config_opts=ipopt_opts)
+        install_ipopt(config_opts=ipopt_opts)
 
 def install_hsl_from_src():
     """ Build HSL from the user-supplied source tar file. """
