@@ -371,9 +371,6 @@ def run_cmd(cmd_list, do_check=True, raise_error=True)->bool:
 
     return result
 
-def cmd_output(cmd_list):
-    subprocess.run(cmd_list, check=True, capture_output=True)
-
 def check_make(errors:list):
     """
     Find the best make command and test its viability.
