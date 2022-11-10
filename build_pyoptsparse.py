@@ -32,7 +32,8 @@ opts = {
     'compile_required': True, # Not set directly by the user, but determined from other options
     'uninstall': False,
     'pyoptsparse_version': None, # Parsed pyOptSparse version, set by finish_setup()
-    'make_name': 'make'
+    'make_name': 'make',
+    'fall_back': False
 }
 
 # Information about the host, status, and constants
@@ -144,6 +145,12 @@ def process_command_line():
                               can be installed with conda.",
                         action="store_true",
                         default=opts['force_build'])
+    parser.add_argument("-g", "--fall-back",
+                        help="If a conda package fails to install, fall back to \
+                              building from source. If selected, the build environment is \
+                              tested in case it is needed.",
+                        action="store_true",
+                        default=opts['fall_back'])
     parser.add_argument("-k", "--no-sanity-check",
                         help="Skip the sanity checks.",
                         action="store_true",
@@ -228,6 +235,7 @@ def process_command_line():
 
     opts['keep_build_dir'] = args.no_delete
     opts['force_build'] = args.force_build
+    opts['fall_back'] = args.fall_back
     opts['check_sanity'] = not args.no_sanity_check
     opts['linear_solver'] = args.linear_solver
     if opts['linear_solver'] == 'pardiso':
@@ -273,6 +281,11 @@ def note_ok():
     """ Print a green OK message to follow up a note() with. """
     if opts['verbose'] is False:
         print(green('OK'))
+
+def note_failed():
+    """ Print a red failure message to follow up a note() with. """
+    if opts['verbose'] is False:
+        print(red('failed'))
 
 def code(msg:str)->str:
     """
@@ -616,9 +629,14 @@ def install_metis_from_src():
 def install_metis():
     """ Install METIS either through conda or building. """
     if allow_install_with_conda() and opts['force_build'] is False:
-        install_conda_pkg('metis')
-    else:
-        install_metis_from_src()
+        try:
+            install_conda_pkg('metis')
+            return
+        except:
+            note_failed()
+            print(yellow('Installing METIS with conda failed, falling back to source build.'))
+
+    install_metis_from_src()
 
 def install_mumps_from_src():
     """ Git clone the MUMPS repo, build the library, and install it and the include files. """
@@ -703,25 +721,50 @@ def install_ipopt_from_src(config_opts:list=None):
     make_install()
     popd()
 
+def install_ipopt(config_opts:list=None):
+    """
+    Install IPOPT either through conda or building.
+
+    Parameters
+    ----------
+    config_opts : list
+        Additional options to use with the IPOPT configure script if building.
+    """
+    if allow_install_with_conda() and opts['force_build'] is False:
+        try:
+            install_conda_pkg('ipopt')
+            return
+        except:
+            note_failed()
+            print(yellow('Installing IPOPT with conda failed, falling back to source build.'))
+
+    install_ipopt_from_src(config_opts=config_opts)    
+
 def install_with_mumps():
     """ Install METIS, MUMPS, and IPOPT. """
     install_metis()
-    if allow_install_with_conda() and opts['force_build'] is False:
-        install_conda_pkg('mumps')
-        if opts['include_ipopt'] is True: install_conda_pkg('ipopt')
-    else:
-        install_mumps_from_src()
-        coin_dir = get_coin_inc_dir()
 
-        mumps_lib = get_coin_lib_name('mumps')
-        ipopt_opts = [
-            '--with-mumps',
-            f'--with-mumps-lflags=-L{opts["prefix"]}/lib -l{mumps_lib}',
-            f'--with-mumps-cflags=-I{coin_dir}/mumps',
-            '--without-asl',
-            '--without-hsl'
-        ]
-        install_ipopt_from_src(config_opts=ipopt_opts)
+    if allow_install_with_conda() and opts['force_build'] is False:
+        try:
+            install_conda_pkg('mumps')
+            if opts['include_ipopt'] is True: install_ipopt()
+            return
+        except:
+            note_failed()
+            print(yellow('Installing MUMPS with conda failed, falling back to source build.'))
+
+    install_mumps_from_src()
+    coin_dir = get_coin_inc_dir()
+
+    mumps_lib = get_coin_lib_name('mumps')
+    ipopt_opts = [
+        '--with-mumps',
+        f'--with-mumps-lflags=-L{opts["prefix"]}/lib -l{mumps_lib}',
+        f'--with-mumps-cflags=-I{coin_dir}/mumps',
+        '--without-asl',
+        '--without-hsl'
+    ]
+    if opts['include_ipopt'] is True: install_ipopt(config_opts=ipopt_opts)
 
 def install_hsl_from_src():
     """ Build HSL from the user-supplied source tar file. """
@@ -1062,12 +1105,13 @@ This is associated with Intel OneAPI and may cause the installation to fail.
 If it does, set up Intel OneAPI {yellow('before')} activating your conda env.
 """[1:])
 
-    if opts['compile_required'] is True:
+    if opts['compile_required'] is True or opts['fall_back'] is True:
         check_make(errors)
         required_cmds.extend(['git', os.environ['CC'], os.environ['CXX'], os.environ['FC']])
         if opts['build_pyoptsparse'] is True:
             required_cmds.extend(['pip', 'swig'])
-    else:
+
+    if opts['compile_required'] is False:
         required_cmds.append(opts['conda_cmd'])
 
     if opts['hsl_tar_file'] is not None:
@@ -1093,7 +1137,7 @@ If it does, set up Intel OneAPI {yellow('before')} activating your conda env.
 
         exit(1)
 
-    if opts['compile_required'] is True:
+    if opts['compile_required'] is True or opts['fall_back'] is True:
         check_compiler_sanity()
         check_library('lapack')
         check_library('blas')
