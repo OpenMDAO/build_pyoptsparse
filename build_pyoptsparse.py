@@ -46,7 +46,8 @@ sys_info = {
     'sys_name': platform.system(),
     'conda_activate_dir': None,
     'conda_deactivate_dir': None,
-    'conda_env_script': 'pyoptsparse_lib.sh'
+    'conda_env_script': 'pyoptsparse_lib.sh',
+    'conda_forge_available': False
 }
 
 # Where to find each package, which branch to use if obtained by git,
@@ -212,6 +213,19 @@ def process_command_line():
             else:
                 opts['conda_cmd'] = 'mamba'
 
+        # Make sure conda forge channel is available
+        note('Checking for conda-forge')
+        cmd_list=['info','--unsafe-channels']
+        result = run_conda_cmd(cmd_list)
+
+        if re.search(r'conda.*forge', result.stdout) is not None:
+            sys_info['conda_forge_available'] = True
+            note_ok()
+        else:
+            print(f'{yellow("WARNING")}: The conda-forge channel is not configured, cannot '
+                    'install conda packages. Falling back to building from source.')
+            opts['compile_required'] = True
+
     opts['keep_build_dir'] = args.no_delete
     opts['force_build'] = args.force_build
     opts['check_sanity'] = not args.no_sanity_check
@@ -289,7 +303,8 @@ def conda_is_active() -> bool:
 
 def allow_install_with_conda() -> bool:
     """ Determine if we can install with conda. """
-    return conda_is_active() and (opts['ignore_conda'] is False)
+    return conda_is_active() and (opts['ignore_conda'] is False) and \
+           (sys_info['conda_forge_available'] is True)
 
 def venv_is_active() -> bool:
     """ Determine if a Python virtual environment is active. """
@@ -337,22 +352,24 @@ def run_cmd(cmd_list, do_check=True, raise_error=True)->bool:
         Only matters if do_check is true. If false, raise an exception
         if the process returns a non-zero status. If true, do not raise
         an exception, but have the function return False.
+
+    Returns
+    -------
+    subprocess.CompletedProcess
+        The result of the finished command.
     """
-    success=True
+    result = None
 
     try:
-        if opts['verbose'] is False:
-            subprocess.run(cmd_list, check=do_check, capture_output=True)
-        else:
-            subprocess.run(cmd_list, check=do_check)
-    except subprocess.CalledProcessError:
+        result = subprocess.run(cmd_list, check=do_check, capture_output=True, text=True)
+    except subprocess.CalledProcessError as inst:
         if raise_error is True:
-            raise subprocess.CalledProcessError
-        else:
-            success=False
+            raise inst
 
-    return success
+    if opts['verbose'] is True and result is not None:
+        print(result.stdout, result.stderr)
 
+    return result
 
 def check_make(errors:list):
     """
@@ -410,10 +427,16 @@ def run_conda_cmd(cmd_args):
     cmd_list : list
         Each token of the command line is a separate member of the list. The conda
         executable name is prepended, so should not be included in the list.
+
+    Returns
+    -------
+    subprocess.CompletedProcess
+        The result of the finished command.
     """
     cmd_list = [opts['conda_cmd']]
     cmd_list.extend(cmd_args)
-    run_cmd(cmd_list)
+    return run_cmd(cmd_list)
+    
 
 def pip_install(pip_install_args, pkg_desc='packages'):
     """
@@ -945,8 +968,10 @@ def check_library(libname:str, raise_on_failure=True):
     with open('hello.c', 'w', encoding="utf-8") as f:
         f.write('#include <stdio.h>\nint main() {\nprintf("cc works!\\n");\nreturn 0;\n}\n')
 
-    success=run_cmd(cmd_list=[os.environ['CC'], '-o', 'hello_c', 'hello.c', f'-l{libname}'],
+    result = run_cmd(cmd_list=[os.environ['CC'], '-o', 'hello_c', 'hello.c', f'-l{libname}'],
                     raise_error=False)
+
+    success = (result is not None and result.returncode == 0)
     if success is True:
         note_ok()
     else:
@@ -1024,7 +1049,7 @@ def check_sanity():
 
     print(f'Using {code(subst_env_for_path(opts["prefix"]))} for install prefix')
 
-    if allow_install_with_conda():
+    if conda_is_active() and (opts['ignore_conda'] is False):
         cpre = os.environ['CONDA_PREFIX']
         if re.search('intelpython', cpre) is not None:
             print(f"""
