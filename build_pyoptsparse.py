@@ -32,7 +32,8 @@ opts = {
     'compile_required': True, # Not set directly by the user, but determined from other options
     'uninstall': False,
     'pyoptsparse_version': None, # Parsed pyOptSparse version, set by finish_setup()
-    'make_name': 'make'
+    'make_name': 'make',
+    'fall_back': False
 }
 
 # Information about the host, status, and constants
@@ -144,6 +145,12 @@ def process_command_line():
                               can be installed with conda.",
                         action="store_true",
                         default=opts['force_build'])
+    parser.add_argument("-g", "--fall-back",
+                        help="If a conda package fails to install, fall back to \
+                              building from source. If selected, the build environment is \
+                              tested in case it is needed.",
+                        action="store_true",
+                        default=opts['fall_back'])
     parser.add_argument("-k", "--no-sanity-check",
                         help="Skip the sanity checks.",
                         action="store_true",
@@ -214,20 +221,22 @@ def process_command_line():
                 opts['conda_cmd'] = 'mamba'
 
         # Make sure conda forge channel is available
-        note('Checking for conda-forge')
-        cmd_list=['info','--unsafe-channels']
-        result = run_conda_cmd(cmd_list)
+        if args.uninstall is False:
+            note('Checking for conda-forge')
+            cmd_list=['info','--unsafe-channels']
+            result = run_conda_cmd(cmd_list)
 
-        if re.search(r'conda.*forge', result.stdout) is not None:
-            sys_info['conda_forge_available'] = True
-            note_ok()
-        else:
-            print(f'{yellow("WARNING")}: The conda-forge channel is not configured, cannot '
-                    'install conda packages. Falling back to building from source.')
-            opts['compile_required'] = True
+            if re.search(r'conda.*forge', result.stdout) is not None:
+                sys_info['conda_forge_available'] = True
+                note_ok()
+            else:
+                print(f'{yellow("WARNING")}: The conda-forge channel is not configured, cannot \
+                        install conda packages. Falling back to building from source.')
+                opts['compile_required'] = True
 
     opts['keep_build_dir'] = args.no_delete
     opts['force_build'] = args.force_build
+    opts['fall_back'] = args.fall_back
     opts['check_sanity'] = not args.no_sanity_check
     opts['linear_solver'] = args.linear_solver
     if opts['linear_solver'] == 'pardiso':
@@ -239,8 +248,9 @@ def process_command_line():
     opts['build_pyoptsparse'] = not args.no_install
     opts['snopt_dir'] = args.snopt_dir
     opts['hsl_tar_file'] = args.hsl_tar_file
-    opts['uninstall'] = args.uninstall
     opts['verbose'] = args.verbose
+    opts['uninstall'] = args.uninstall
+
 
 def announce(msg:str):
     """
@@ -274,6 +284,11 @@ def note_ok():
     if opts['verbose'] is False:
         print(green('OK'))
 
+def note_failed():
+    """ Print a red failure message to follow up a note() with. """
+    if opts['verbose'] is False:
+        print(red('failed'))
+
 def code(msg:str)->str:
     """
     Create a message with "code" hilighting.
@@ -285,12 +300,32 @@ def code(msg:str)->str:
     """
     return color(msg, 'orange', style='underline')
 
+def try_fallback(pkg:str, e:Exception):
+    """
+    When a conda package installation fails, this is called to print status info
+    and determine whether it's possible to try building from source.
+
+    Parameters
+    ----------
+    pkg : str
+        The name of the package that failed to install.
+    e : Exception
+        That exception that was caught when the failure occurred.
+    """
+
+    note_failed()
+    if opts['fall_back'] is True:
+        print(yellow(f'Installing {pkg} with conda failed, falling back to source build.'))
+    else:
+        print(yellow('Use the --fall-back switch to build source on failed conda installs.'))
+        raise e    
+
 def initialize():
     """ Perform a collection of setup tasks """
     global dir_stack
     dir_stack = []
 
-    if allow_install_with_conda():
+    if conda_is_active() and (opts['ignore_conda'] is False):
         opts['prefix']=os.environ['CONDA_PREFIX']
         sys_info['conda_activate_dir'] = Path(opts['prefix']) / 'etc' / 'conda' / 'activate.d'
         sys_info['conda_deactivate_dir'] = Path(opts['prefix']) / 'etc' / 'conda' / 'deactivate.d'
@@ -613,9 +648,13 @@ def install_metis_from_src():
 def install_metis():
     """ Install METIS either through conda or building. """
     if allow_install_with_conda() and opts['force_build'] is False:
-        install_conda_pkg('metis')
-    else:
-        install_metis_from_src()
+        try:
+            install_conda_pkg('metis')
+            return
+        except Exception as e:
+            try_fallback('METIS', e)
+
+    install_metis_from_src()
 
 def install_mumps_from_src():
     """ Git clone the MUMPS repo, build the library, and install it and the include files. """
@@ -654,6 +693,7 @@ def install_paropt_from_src():
     Git clone the PAROPT repo, build the library, and install it and the include files.
     """
     build_dir = git_clone('paropt')
+    pip_install(['Cython'], pkg_desc='Cython')
 
     # Use build defaults as per ParOpt instructions:
     Path('Makefile.in.info').rename('Makefile.in')
@@ -700,14 +740,42 @@ def install_ipopt_from_src(config_opts:list=None):
     make_install()
     popd()
 
+def install_ipopt(config_opts:list=None):
+    """
+    Install IPOPT either through conda or building.
+
+    Parameters
+    ----------
+    config_opts : list
+        Additional options to use with the IPOPT configure script if building.
+    """
+    if allow_install_with_conda() and opts['force_build'] is False:
+        try:
+            install_conda_pkg('ipopt')
+            return
+        except Exception as e:
+            try_fallback('IPOPT', e)
+
+    install_ipopt_from_src(config_opts=config_opts)
+
+def install_mumps():
+    """ Install MUMPS either through conda or building. """
+    if allow_install_with_conda() and opts['force_build'] is False:
+        try:
+            install_conda_pkg('mumps')
+            return
+        except Exception as e:
+            try_fallback('MUMPS', e)
+
+    install_mumps_from_src()
+
 def install_with_mumps():
     """ Install METIS, MUMPS, and IPOPT. """
     install_metis()
-    if allow_install_with_conda() and opts['force_build'] is False:
-        install_conda_pkg('mumps')
-        if opts['include_ipopt'] is True: install_conda_pkg('ipopt')
-    else:
-        install_mumps_from_src()
+    install_mumps()
+
+    if opts['include_ipopt'] is True: 
+        # Get this info in case we need to build IPOPT from source
         coin_dir = get_coin_inc_dir()
 
         mumps_lib = get_coin_lib_name('mumps')
@@ -718,7 +786,8 @@ def install_with_mumps():
             '--without-asl',
             '--without-hsl'
         ]
-        install_ipopt_from_src(config_opts=ipopt_opts)
+
+        install_ipopt(config_opts=ipopt_opts)
 
 def install_hsl_from_src():
     """ Build HSL from the user-supplied source tar file. """
@@ -1059,12 +1128,13 @@ This is associated with Intel OneAPI and may cause the installation to fail.
 If it does, set up Intel OneAPI {yellow('before')} activating your conda env.
 """[1:])
 
-    if opts['compile_required'] is True:
+    if opts['compile_required'] is True or opts['fall_back'] is True:
         check_make(errors)
         required_cmds.extend(['git', os.environ['CC'], os.environ['CXX'], os.environ['FC']])
         if opts['build_pyoptsparse'] is True:
             required_cmds.extend(['pip', 'swig'])
-    else:
+
+    if opts['compile_required'] is False:
         required_cmds.append(opts['conda_cmd'])
 
     if opts['hsl_tar_file'] is not None:
@@ -1090,7 +1160,7 @@ If it does, set up Intel OneAPI {yellow('before')} activating your conda env.
 
         exit(1)
 
-    if opts['compile_required'] is True:
+    if opts['compile_required'] is True or opts['fall_back'] is True:
         check_compiler_sanity()
         check_library('lapack')
         check_library('blas')
