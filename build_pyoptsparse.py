@@ -77,7 +77,7 @@ build_info = {
         'include_file': 'IpoptConfig.h'
     },
     'pyoptsparse': {
-        'branch': 'v2.8.3',
+        'branch': 'v2.9.2',
         'url': 'https://github.com/mdolab/pyoptsparse.git',
     },
     'hsl': {
@@ -318,7 +318,7 @@ def try_fallback(pkg:str, e:Exception):
         print(yellow(f'Installing {pkg} with conda failed, falling back to source build.'))
     else:
         print(yellow('Use the --fall-back switch to build source on failed conda installs.'))
-        raise e    
+        raise e
 
 def initialize():
     """ Perform a collection of setup tasks """
@@ -471,7 +471,7 @@ def run_conda_cmd(cmd_args):
     cmd_list = [opts['conda_cmd']]
     cmd_list.extend(cmd_args)
     return run_cmd(cmd_list)
-    
+
 
 def pip_install(pip_install_args, pkg_desc='packages'):
     """
@@ -774,7 +774,7 @@ def install_with_mumps():
     install_metis()
     install_mumps()
 
-    if opts['include_ipopt'] is True: 
+    if opts['include_ipopt'] is True:
         # Get this info in case we need to build IPOPT from source
         coin_dir = get_coin_inc_dir()
 
@@ -919,7 +919,7 @@ def install_pyoptsparse_from_src():
         # It is recommended to use `setuptools < 60.0` for those Python versions.
         # For more details, see:
         # https://numpy.org/devdocs/reference/distutils_status_migration.html
-        pip_install(pip_install_args=['setuptools<65.0'], pkg_desc='setuptools')
+        pip_install(pip_install_args=['setuptools<66.0'], pkg_desc='setuptools')
 
         pip_install(pip_install_args=['--no-cache-dir', './'], pkg_desc='pyoptsparse')
     else:
@@ -1106,7 +1106,7 @@ def find_required_command(cmd:str, errors:list):
         return False
     elif opts['verbose'] is True:
         print(f"{green('FOUND')}: {cmd} is {cmd_path}")
-    
+
     return True
 
 def check_sanity():
