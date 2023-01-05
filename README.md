@@ -16,7 +16,7 @@ If you have a previous installation of pyOptSparse and its dependencies and are 
 To install:
 1. Activate your virtual environment
 2. Git clone the repository
-3. Run `python -m pip install ./build_pyoptsparse`.  
+3. Run `python -m pip install ./build_pyoptsparse`.
 If ParOpt support is desired, run `python -m pip install './build_pyoptsparse[paropt]'`
 
 ## Usage
@@ -38,7 +38,7 @@ options:
   -h, --help            show this help message and exit
   -a, --paropt          Add ParOpt support. Default: no ParOpt
   -b BRANCH, --branch BRANCH
-                        pyOptSparse git branch. Default: v2.8.3
+                        pyOptSparse git branch. Default: v2.9.2
   -c CONDA_CMD, --conda-cmd CONDA_CMD
                         Command to install packages with if conda is used. Default: conda
   -d, --no-delete       Do not erase the build directories after completion.
