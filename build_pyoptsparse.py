@@ -919,7 +919,7 @@ def install_pyoptsparse_from_src():
         # It is recommended to use `setuptools < 60.0` for those Python versions.
         # For more details, see:
         # https://numpy.org/devdocs/reference/distutils_status_migration.html
-        pip_install(pip_install_args=['setuptools<65.0'], pkg_desc='setuptools')
+        pip_install(pip_install_args=['setuptools<66.0'], pkg_desc='setuptools')
 
         pip_install(pip_install_args=['--no-cache-dir', './'], pkg_desc='pyoptsparse')
     else:
