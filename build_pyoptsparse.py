@@ -762,7 +762,7 @@ def install_mumps():
     """ Install MUMPS either through conda or building. """
     if allow_install_with_conda() and opts['force_build'] is False:
         try:
-            install_conda_pkg('mumps')
+            install_conda_pkg('mumps-include')
             return
         except Exception as e:
             try_fallback('MUMPS', e)
