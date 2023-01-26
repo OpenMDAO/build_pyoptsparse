@@ -203,8 +203,7 @@ jobs:
           echo "============================================================="
           echo "Run tests from pyoptsparse repository"
           echo "============================================================="
-          echo "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}"
-          echo "BRANCH=${BRANCH}"
+          unset DYLD_LIBRARY_PATH
           git clone $BRANCH https://github.com/mdolab/pyoptsparse
           cd pyoptsparse/test*/
           testflo --pre_announce --show_skipped .
