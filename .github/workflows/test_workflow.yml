@@ -28,15 +28,16 @@ jobs:
             PAROPT: true
             SNOPT: 7.7
 
-          # # test baseline versions on MacOS
-          # - NAME: MacOS Baseline
-          #   OS: macos-latest
-          #   PY: '3.10'
-          #   NUMPY: 1.22
-          #   SCIPY: 1.7
-          #   PYOPTSPARSE: 'v2.8.3'
-          #   PAROPT: true
-          #   SNOPT: 7.7
+          # test baseline versions on MacOS
+          - NAME: MacOS Baseline
+            OS: macos-latest
+            PY: '3.11'
+            NUMPY: 1
+            SCIPY: 1
+            MPI4PY: true
+            PYOPTSPARSE: 'latest'
+            PAROPT: true
+            SNOPT: 7.7
 
           # test latest versions
           - NAME: Ubuntu Latest
