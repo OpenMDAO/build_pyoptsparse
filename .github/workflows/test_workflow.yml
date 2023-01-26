@@ -118,7 +118,7 @@ jobs:
           echo "Install MPI"
           echo "============================================================="
 
-          conda install cython compilers openmpi-mpicc mpi4py -q -y
+          conda install cython compilers openmpi-mpicc mpi4py gettext -q -y
 
           echo "OMPI_MCA_rmaps_base_oversubscribe=1" >> $GITHUB_ENV
 
