@@ -762,7 +762,9 @@ def install_mumps():
     """ Install MUMPS either through conda or building. """
     if allow_install_with_conda() and opts['force_build'] is False:
         try:
-            install_conda_pkg('mumps')
+            install_conda_pkg('mumps-include')
+            install_conda_pkg('mumps-seq')
+            install_conda_pkg('mumps-mpi')
             return
         except Exception as e:
             try_fallback('MUMPS', e)
@@ -1009,7 +1011,7 @@ def uninstall_conda_pkgs():
     """ Attempt to remove packages previously installed by conda. """
 
     if conda_is_active():
-        for pkg in ['ipopt','mumps','metis']:
+        for pkg in ['ipopt','mumps','mumps-include','mumps-seq','mumps-mpi','metis']:
             note(f"Removing {pkg.upper()} conda package")
             run_cmd(cmd_list=[opts['conda_cmd'],'uninstall','-y',pkg], do_check=False)
             note_ok()
