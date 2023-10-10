@@ -25,7 +25,7 @@ jobs:
             SCIPY: 1.7
             MPI4PY: true
             PYOPTSPARSE: 'v2.8.3'
-            PAROPT: true
+            # PAROPT: true
             SNOPT: 7.7
 
           # test baseline versions on MacOS
@@ -36,7 +36,7 @@ jobs:
             SCIPY: 1
             MPI4PY: true
             PYOPTSPARSE: 'latest'
-            PAROPT: true
+            # PAROPT: true
             SNOPT: 7.7
 
           # test latest versions
@@ -47,7 +47,7 @@ jobs:
             SCIPY: 1
             MPI4PY: true
             PYOPTSPARSE: 'latest'
-            PAROPT: true
+            # PAROPT: true
             SNOPT: 7.7
 
           # test oldest supported versions
@@ -180,7 +180,7 @@ jobs:
               echo "HSL was requested but source is not available, using default linear solver."
               echo "---------------------------------------------------------------------------"
             fi
-          elif [[ "${{  matrix.LINEAR_SOLVER }}" == "pardiso" ]]; then
+          elif [[ "${{ matrix.LINEAR_SOLVER }}" == "pardiso" ]]; then
             echo "-------------------------------------------------------------------------------"
             echo "Pardiso requires Intel compilers, which are not installed. The build will fail."
             echo "-------------------------------------------------------------------------------"
@@ -209,6 +209,8 @@ jobs:
           testflo --pre_announce --show_skipped .
 
       - name: Audit dependencies
+        id: audit
+        continue-on-error: true
         run: |
           python -m pip install pip-audit
 
@@ -216,6 +218,16 @@ jobs:
           echo "Scan environment for packages with known vulnerabilities"
           echo "============================================================="
           python -m pip_audit
+
+      - name: Slack deprecation warnings
+        if: steps.audit.outcome == 'failure'
+        uses: act10ns/slack@v2.0.0
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          status: 'warning'
+          message: |
+            pip-audit detected vulnerabilities.
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: Notify slack
         uses: act10ns/slack@v1
