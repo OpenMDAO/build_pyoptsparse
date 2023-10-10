@@ -7,6 +7,10 @@ on:
   pull_request:
     branches: [ master ]
 
+  # Run the workflow Sundays at 0400 UTC
+  schedule:
+    - cron: '0 4 * * 0'
+
   # Allow running the workflow manually from the Actions tab
   workflow_dispatch:
 
