@@ -89,7 +89,7 @@ build_info = {
         'include_file': 'CoinHslConfig.h'
     },
     'paropt': {
-        'branch': 'v2.0.2',
+        'branch': '',
         'url': 'https://github.com/smdogroup/paropt.git',
         'src_lib_glob': 'libparopt*',
     }
@@ -398,6 +398,8 @@ def run_cmd(cmd_list, do_check=True, raise_error=True)->bool:
     try:
         result = subprocess.run(cmd_list, check=do_check, capture_output=True, text=True)
     except subprocess.CalledProcessError as inst:
+        if opts['verbose'] is True:
+            print(inst.stdout, inst.stderr)
         if raise_error is True:
             raise inst
 
@@ -598,9 +600,12 @@ def git_clone(build_key:str, auto_delete:bool=True):
     note_ok()
     pushd(dir_name)
 
-    # We don't care about the "detached HEAD" warning:
-    run_cmd(cmd_list=['git', 'config', '--local', 'advice.detachedHead', 'false'])
-    run_cmd(cmd_list=['git', 'checkout', '-q', d['branch']])
+    if d["branch"]:
+        # We don't care about the "detached HEAD" warning:
+        run_cmd(cmd_list=['git', 'config', '--local', 'advice.detachedHead', 'false'])
+        note(f'Checking out branch {d["branch"]}')
+        run_cmd(cmd_list=['git', 'checkout', '-q', d['branch']])
+
     return build_dir
 
 def allow_build(build_key:str) -> bool:
@@ -635,7 +640,7 @@ def install_metis_from_src():
     if not allow_build('metis'):
         return
 
-    build_dir = git_clone('metis')
+    os.environ['METIS_DIR'] = git_clone('metis')
     run_cmd(['./get.Metis'])
     os.environ['CFLAGS'] = '-Wno-implicit-function-declaration'
     note("Running configure")
@@ -649,6 +654,7 @@ def install_metis():
     if allow_install_with_conda() and opts['force_build'] is False:
         try:
             install_conda_pkg('metis')
+            os.environ['METIS_DIR'] = os.environ['CONDA_PREFIX']
             return
         except Exception as e:
             try_fallback('METIS', e)
@@ -698,9 +704,15 @@ def install_paropt_from_src():
     Path('Makefile.in.info').rename('Makefile.in')
     make_vars =  [f'PAROPT_DIR={Path.cwd()}']
     if sys_info['sys_name'] == 'Darwin':
-        make_vars.extend(['SO_EXT=dylib', 'SO_LINK_FLAGS=-fPIC -dynamiclib'])
+        make_vars.extend(['SO_EXT=so', 'SO_LINK_FLAGS=-fPIC -dynamiclib -undefined dynamic_lookup',
+                          f'METIS_INCLUDE=-I{os.environ["METIS_DIR"]}/include/',
+                          f'METIS_LIB=-L{os.environ["METIS_DIR"]}/lib/',
+                          '-lmetis'])
     else:
-        make_vars.extend(['SO_EXT=so', 'SO_LINK_FLAGS=-fPIC -shared'])
+        make_vars.extend(['SO_EXT=so', 'SO_LINK_FLAGS=-fPIC -shared',
+                          f'METIS_INCLUDE=-I{os.environ["METIS_DIR"]}/include/',
+                          f'METIS_LIB=-L{os.environ["METIS_DIR"]}/lib/',
+                          '-lmetis'])
 
     make_install(make_args=make_vars, do_install=False)
     pip_install(['./'], pkg_desc='paropt')

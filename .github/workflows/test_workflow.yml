@@ -32,7 +32,7 @@ jobs:
             SCIPY: 1.7
             MPI4PY: true
             PYOPTSPARSE: 'v2.8.3'
-            # PAROPT: true
+            PAROPT: true
             SNOPT: 7.7
 
           # test baseline versions on MacOS
@@ -43,7 +43,7 @@ jobs:
             SCIPY: 1
             MPI4PY: true
             PYOPTSPARSE: 'latest'
-            # PAROPT: true
+            PAROPT: true
             SNOPT: 7.7
 
           # test latest versions
@@ -54,7 +54,7 @@ jobs:
             SCIPY: 1
             MPI4PY: true
             PYOPTSPARSE: 'latest'
-            # PAROPT: true
+            PAROPT: true
             SNOPT: 7.7
 
           # test oldest supported versions
