@@ -89,7 +89,7 @@ build_info = {
         'include_file': 'CoinHslConfig.h'
     },
     'paropt': {
-        'branch': '',
+        'branch': 'v2.1.4',
         'url': 'https://github.com/smdogroup/paropt.git',
         'src_lib_glob': 'libparopt*',
     }
