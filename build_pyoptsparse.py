@@ -704,7 +704,7 @@ def install_paropt_from_src():
     Path('Makefile.in.info').rename('Makefile.in')
     make_vars =  [f'PAROPT_DIR={Path.cwd()}']
     if sys_info['sys_name'] == 'Darwin':
-        make_vars.extend(['SO_EXT=so', 'SO_LINK_FLAGS=-fPIC -dynamiclib -undefined dynamic_lookup',
+        make_vars.extend(['SO_EXT=dylib', 'SO_LINK_FLAGS=-fPIC -dynamiclib -undefined dynamic_lookup',
                           f'METIS_INCLUDE=-I{os.environ["METIS_DIR"]}/include/',
                           f'METIS_LIB=-L{os.environ["METIS_DIR"]}/lib/',
                           '-lmetis'])
