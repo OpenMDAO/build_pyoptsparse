@@ -937,8 +937,11 @@ def install_pyoptsparse_from_src():
             # https://numpy.org/devdocs/reference/distutils_status_migration.html
             pip_install(pip_install_args=['setuptools<66.0'], pkg_desc='setuptools<66.0')
             pip_install(pip_install_args=['--no-cache-dir', './'], pkg_desc='pyoptsparse')
-            pip_install(pip_install_args=[f'setuptools=={stools_ver}'],
-                        pkg_desc='previous version of setuptools')
+            try:
+                pip_install(pip_install_args=[f'setuptools=={stools_ver}'],
+                            pkg_desc='previous version of setuptools')
+            except Exception:
+                print(f'Unable to restore previous version of setuptools ({stools_ver})')
         else:
             pip_install(pip_install_args=['--no-cache-dir', './'], pkg_desc='pyoptsparse')
     else:
