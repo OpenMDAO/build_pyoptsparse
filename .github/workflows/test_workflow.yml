@@ -62,7 +62,7 @@ jobs:
             OS: ubuntu-latest
             PY: 3.8
             NUMPY: 1.22
-            SCIPY: 1.8
+            SCIPY: 1.7
             PYOPTSPARSE: 'v1.2'
             NO_IPOPT: true
             SNOPT: 7.2
@@ -227,7 +227,7 @@ jobs:
           python -m pip_audit
 
       - name: Slack audit warnings
-        if: steps.audit.outcome == 'failure'
+        if: steps.audit.outcome == 'failure' && matrix.NAME != 'Ubuntu Oldest'
         uses: act10ns/slack@v2.0.0
         with:
           webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
