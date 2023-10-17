@@ -27,11 +27,11 @@ jobs:
           # test baseline versions on Ubuntu
           - NAME: Ubuntu Baseline
             OS: ubuntu-latest
-            PY: '3.10'
-            NUMPY: 1.22
-            SCIPY: 1.7
+            PY: '3.11'
+            NUMPY: 1.25
+            SCIPY: 1.11
             MPI4PY: true
-            PYOPTSPARSE: 'v2.8.3'
+            PYOPTSPARSE: 'v2.10.1'
             PAROPT: true
             SNOPT: 7.7
 
@@ -227,7 +227,7 @@ jobs:
           python -m pip_audit
 
       - name: Slack audit warnings
-        if: steps.audit.outcome == 'failure'
+        if: steps.audit.outcome == 'failure' && matrix.NAME != 'Ubuntu Oldest'
         uses: act10ns/slack@v2.0.0
         with:
           webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
