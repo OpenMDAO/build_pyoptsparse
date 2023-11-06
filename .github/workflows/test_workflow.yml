@@ -153,7 +153,7 @@ jobs:
           echo "============================================================="
 
           if [[ "${{ matrix.PYOPTSPARSE }}" == "default" ]]; then
-            BRAMCH=""
+            BRANCH=""
           elif [[ "${{ matrix.PYOPTSPARSE }}" == "latest" ]]; then
             LATEST_URL=`curl -fsSLI -o /dev/null -w %{url_effective} https://github.com/mdolab/pyoptsparse/releases/latest`
             LATEST_VER=`echo $LATEST_URL | awk '{split($0,a,"/tag/"); print a[2]}'`
