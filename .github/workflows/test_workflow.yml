@@ -31,7 +31,7 @@ jobs:
             NUMPY: 1.25
             SCIPY: 1.11
             MPI4PY: true
-            PYOPTSPARSE: 'v2.10.1'
+            PYOPTSPARSE: 'default'
             PAROPT: true
             SNOPT: 7.7
 
@@ -42,7 +42,7 @@ jobs:
             NUMPY: 1
             SCIPY: 1
             MPI4PY: true
-            PYOPTSPARSE: 'latest'
+            PYOPTSPARSE: 'default'
             PAROPT: true
             SNOPT: 7.7
 
@@ -152,7 +152,9 @@ jobs:
           echo "Build pyoptsparse"
           echo "============================================================="
 
-          if [[ "${{ matrix.PYOPTSPARSE }}" == "latest" ]]; then
+          if [[ "${{ matrix.PYOPTSPARSE }}" == "default" ]]; then
+            BRAMCH=""
+          else [[ "${{ matrix.PYOPTSPARSE }}" == "latest" ]]; then
             LATEST_URL=`curl -fsSLI -o /dev/null -w %{url_effective} https://github.com/mdolab/pyoptsparse/releases/latest`
             LATEST_VER=`echo $LATEST_URL | awk '{split($0,a,"/tag/"); print a[2]}'`
             BRANCH="-b $LATEST_VER"
