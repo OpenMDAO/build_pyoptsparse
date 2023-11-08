@@ -78,7 +78,7 @@ build_info = {
         'include_file': 'IpoptConfig.h'
     },
     'pyoptsparse': {
-        'branch': 'v2.9.2',
+        'branch': 'v2.10.1',
         'url': 'https://github.com/mdolab/pyoptsparse.git',
     },
     'hsl': {
