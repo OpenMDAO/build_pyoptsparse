@@ -640,7 +640,9 @@ def install_metis_from_src():
     if not allow_build('metis'):
         return
 
-    os.environ['METIS_DIR'] = git_clone('metis')
+    metis_dir = git_clone('metis')
+    os.environ['METIS_DIR'] = metis_dir if isinstance(metis_dir, str) else metis_dir.name
+
     run_cmd(['./get.Metis'])
     os.environ['CFLAGS'] = '-Wno-implicit-function-declaration'
     note("Running configure")
