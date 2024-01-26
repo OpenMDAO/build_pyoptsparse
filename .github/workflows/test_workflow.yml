@@ -18,7 +18,7 @@ jobs:
 
   tests:
 
-    timeout-minutes: 40
+    timeout-minutes: 30
 
     strategy:
       fail-fast: false
@@ -135,7 +135,7 @@ jobs:
           echo "Install MPI"
           echo "============================================================="
 
-          conda install cython compilers=1.6.0 openmpi-mpicc mpi4py -q -y
+          conda install cython compilers openmpi-mpicc mpi4py -q -y
 
           echo "OMPI_MCA_rmaps_base_oversubscribe=1" >> $GITHUB_ENV
 
@@ -170,6 +170,10 @@ jobs:
             BRANCH="-b $LATEST_VER"
           else
             BRANCH="-b ${{ matrix.PYOPTSPARSE }}"
+          fi
+
+          if [[ "${{ matrix.PAROPT }}" ]]; then
+            PAROPT="-a"
           fi
 
           if [[ "${{ matrix.SNOPT }}" == "7.7" && "${{ secrets.SNOPT_LOCATION_77 }}" ]]; then
