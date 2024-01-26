@@ -114,7 +114,7 @@ jobs:
         with:
           miniconda-version: latest
           python-version: ${{ matrix.PY }}
-          channels: conda-forge,defaults
+          channels: conda-forge
           channel-priority: true
 
       - name: Install
