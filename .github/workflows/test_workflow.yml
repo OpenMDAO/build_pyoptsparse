@@ -18,7 +18,7 @@ jobs:
 
   tests:
 
-    timeout-minutes: 60
+    timeout-minutes: 40
 
     strategy:
       fail-fast: false
@@ -33,6 +33,15 @@ jobs:
             MPI4PY: true
             PYOPTSPARSE: 'default'
             PAROPT: true
+            SNOPT: 7.7
+
+          # test baseline versions on Ubuntu without MPI
+          - NAME: Ubuntu Baseline, no MPI
+            OS: ubuntu-latest
+            PY: '3.11'
+            NUMPY: 1.25
+            SCIPY: 1.11
+            PYOPTSPARSE: 'default'
             SNOPT: 7.7
 
           # test baseline versions on MacOS
@@ -98,11 +107,12 @@ jobs:
           echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
 
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup conda
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
+          miniconda-version: latest
           python-version: ${{ matrix.PY }}
           channels: conda-forge,defaults
           channel-priority: true
@@ -125,11 +135,11 @@ jobs:
           echo "Install MPI"
           echo "============================================================="
 
-          conda install cython compilers openmpi-mpicc mpi4py -q -y
+          conda install cython compilers=1.6.0 openmpi-mpicc mpi4py -q -y
 
           echo "OMPI_MCA_rmaps_base_oversubscribe=1" >> $GITHUB_ENV
 
-      - name: Display environment info
+      - name: Display environment before
         run: |
           conda info
           conda list
@@ -160,10 +170,6 @@ jobs:
             BRANCH="-b $LATEST_VER"
           else
             BRANCH="-b ${{ matrix.PYOPTSPARSE }}"
-          fi
-
-          if [[ "${{ matrix.PAROPT }}" ]]; then
-            PAROPT="-a"
           fi
 
           if [[ "${{ matrix.SNOPT }}" == "7.7" && "${{ secrets.SNOPT_LOCATION_77 }}" ]]; then
@@ -200,9 +206,27 @@ jobs:
             NO_IPOPT="--no-ipopt"
           fi
 
+          echo "build_pyoptsparse -v $BRANCH $PAROPT $SNOPT $NO_IPOPT $LINEAR_SOLVER"
           build_pyoptsparse -v $BRANCH $PAROPT $SNOPT $NO_IPOPT $LINEAR_SOLVER
 
           echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
+
+      - name: Display environment after
+        run: |
+          conda info
+          conda list
+
+          echo "============================================================="
+          echo "Check installed versions of Python, Numpy and Scipy"
+          echo "============================================================="
+          python -c "import sys; assert str(sys.version).startswith(str(${{ matrix.PY }})), \
+                    f'Python version {sys.version} is not the requested version (${{ matrix.PY }})'"
+
+          python -c "import numpy; assert str(numpy.__version__).startswith(str(${{ matrix.NUMPY }})), \
+                    f'Numpy version {numpy.__version__} is not the requested version (${{ matrix.NUMPY }})'"
+
+          python -c "import scipy; assert str(scipy.__version__).startswith(str(${{ matrix.SCIPY }})), \
+                    f'Scipy version {scipy.__version__} is not the requested version (${{ matrix.SCIPY }})'"
 
       - name: Run tests
         run: |
@@ -213,9 +237,17 @@ jobs:
           echo "Run tests from pyoptsparse repository"
           echo "============================================================="
           unset DYLD_LIBRARY_PATH
+
+          if [[ "$BRANCH" == "" ]]; then
+            BRANCH=`python -c "from build_pyoptsparse import build_info; print(build_info['pyoptsparse']['branch'])"`
+            BRANCH="-b $BRANCH"
+          fi
+
+          echo "git clone $BRANCH https://github.com/mdolab/pyoptsparse"
           git clone $BRANCH https://github.com/mdolab/pyoptsparse
+
           cd pyoptsparse/test*/
-          testflo --pre_announce --show_skipped .
+          testflo --pre_announce --timeout=120 --show_skipped .
 
       - name: Audit dependencies
         id: audit
@@ -239,9 +271,8 @@ jobs:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: Notify slack
-        uses: act10ns/slack@v1
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        uses: act10ns/slack@v2.0.0
         with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
           status: ${{ job.status }}
-        if: always()
+        if: failure()
