@@ -831,7 +831,7 @@ def install_hsl_from_src():
 
     # Extract the HSL tar file and rename the folder to 'coinhsl'
     # First, determine the name of the top-level folder:
-    with tarfile.open(opts['hsl_tar_file'], 'r:gz') as tf:
+    with tarfile.open(opts['hsl_tar_file'], 'r') as tf:
         hsl_dir_name = tf.getnames()[0]
     run_cmd(cmd_list=['tar', 'xf', opts['hsl_tar_file']]) # Extract
     Path(hsl_dir_name).rename('coinhsl') # Rename
