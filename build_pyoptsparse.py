@@ -6,6 +6,7 @@ import re
 import shutil
 import sys
 import subprocess
+import tarfile
 from pathlib import Path, PurePath
 import tempfile
 from colors import *
@@ -40,6 +41,7 @@ opts = {
 # Information about the host, status, and constants
 sys_info = {
     'gcc_major_ver': -1,
+    'gcc_is_apple_clang': False,
     'line_color': 'white',
     'msg_color': 'gray',
     'gnu_sanity_check_done': False,
@@ -663,13 +665,9 @@ def install_metis():
 
     install_metis_from_src()
 
-def install_mumps_from_src():
-    """ Git clone the MUMPS repo, build the library, and install it and the include files. """
-    if not allow_build('mumps'):
-        return
+def get_common_solver_config_cmd():
+    """ Gets common configuration options for Mumps and HSL solvers. """
 
-    build_dir = git_clone('mumps')
-    run_cmd(['./get.Mumps'])
     coin_dir = get_coin_inc_dir()
     cflags = f'-w -I{opts["prefix"]}/include -I{coin_dir} -I{coin_dir}/metis'
     fcflags = cflags
@@ -677,16 +675,36 @@ def install_mumps_from_src():
         fcflags = '-fallow-argument-mismatch ' + fcflags
 
     metis_lib = get_coin_lib_name('metis')
+    metis_lflags = f'-L{opts["prefix"]}/lib -l{metis_lib}'
+    if platform.system() == "Linux":
+        metis_lflags += ' -lm'
+
     config_opts = [
         '--with-metis',
-        f'--with-metis-lflags=-L{opts["prefix"]}/lib -l{metis_lib} -lm',
+        f'--with-metis-lflags={metis_lflags}',
         f'--with-metis-cflags={cflags}',
         f'--prefix={opts["prefix"]}',
         f'CFLAGS={cflags}',
         f'FCFLAGS={fcflags}'
     ]
+
+    # Disable OpenMP support if we are on macOS building with Apple Clang.
+    if sys_info['gcc_is_apple_clang']:
+        config_opts.append('--disable-openmp')
+
     cnf_cmd_list = ['./configure']
     cnf_cmd_list.extend(config_opts)
+    return cnf_cmd_list
+
+def install_mumps_from_src():
+    """ Git clone the MUMPS repo, build the library, and install it and the include files. """
+    if not allow_build('mumps'):
+        return
+
+    build_dir = git_clone('mumps')
+    run_cmd(['./get.Mumps'])
+
+    cnf_cmd_list = get_common_solver_config_cmd()
 
     note("Running configure")
     run_cmd(cmd_list=cnf_cmd_list)
@@ -813,22 +831,12 @@ def install_hsl_from_src():
 
     # Extract the HSL tar file and rename the folder to 'coinhsl'
     # First, determine the name of the top-level folder:
-    tar = subprocess.run(['tar', 'vtf', opts['hsl_tar_file']], encoding='UTF-8',
-          stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    first_line = tar.stdout.splitlines()[0]
-    hsl_dir_name = first_line.split()[8].replace('/','')
+    with tarfile.open(opts['hsl_tar_file'], 'r') as tf:
+        hsl_dir_name = tf.getnames()[0]
     run_cmd(cmd_list=['tar', 'xf', opts['hsl_tar_file']]) # Extract
     Path(hsl_dir_name).rename('coinhsl') # Rename
 
-    coin_dir = get_coin_inc_dir()
-    metis_lib = get_coin_lib_name('metis')
-    cnf_cmd_list = [
-        './configure',
-        f'--prefix={opts["prefix"]}',
-        '--with-metis',
-        f'--with-metis-lflags=-L{opts["prefix"]}/lib -l{metis_lib}',
-        f'--with-mumps-cflags=-I{coin_dir}',
-    ]
+    cnf_cmd_list = get_common_solver_config_cmd()
 
     note("Running configure")
     run_cmd(cmd_list=cnf_cmd_list)
@@ -1199,6 +1207,7 @@ def select_intel_compilers():
     os.environ['CXX'] = 'icpc'
     os.environ['FC'] = 'ifort'
     sys_info['gcc_major_ver'] = -1
+    sys_info['gcc_is_apple_clang'] = False
 
 def select_gnu_compilers():
     """ Set environment variables to use GNU compilers. """
@@ -1207,6 +1216,8 @@ def select_gnu_compilers():
     os.environ['FC'] = 'gfortran'
     gcc_ver = subprocess.run(['gcc', '-dumpversion'], capture_output=True)
     sys_info['gcc_major_ver'] = int(gcc_ver.stdout.decode('UTF-8').split('.')[0])
+    gcc_version = subprocess.run(['gcc', '--version'], capture_output=True)
+    sys_info['gcc_is_apple_clang'] = 'Apple clang' in gcc_version.stdout.decode('UTF-8')
 
 def finish_setup():
     """ Finalize settings based on provided options and environment state. """
