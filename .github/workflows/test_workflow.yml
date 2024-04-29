@@ -13,6 +13,35 @@ on:
 
   # Allow running the workflow manually from the Actions tab
   workflow_dispatch:
+    inputs:
+      run_name:
+        description: 'Name of workflow run as it will appear under Actions tab (optional):'
+        type: string
+        required: false
+        default: ''
+      job_name:
+        description: 'Select a job from the matrix to run (default: all jobs)'
+        type: choice
+        options:
+          - ''
+          - 'Ubuntu Baseline'
+          - 'Ubuntu Baseline, no MPI'
+          - 'MacOS Baseline'
+          - 'Ubuntu Latest'
+          - 'Ubuntu Oldest'
+          - 'Ubuntu Baseline, no MPI, forced build'
+          - 'MacOS Baseline, no MPI, forced build'
+          - 'Ubuntu Latest, no MPI, forced build'
+          - 'MacOS Baseline on ARM'
+        required: false
+        default: ''
+      debug_enabled:
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        type: boolean
+        required: false
+        default: false
+
+run-name:  ${{ inputs.run_name }}
 
 jobs:
 
@@ -27,9 +56,9 @@ jobs:
           # test baseline versions on Ubuntu
           - NAME: Ubuntu Baseline
             OS: ubuntu-latest
-            PY: '3.11'
-            NUMPY: 1.25
-            SCIPY: 1.11
+            PY: '3.12'
+            NUMPY: '1.26'
+            SCIPY: '1.13'
             MPI4PY: true
             PYOPTSPARSE: 'default'
             PAROPT: true
@@ -38,18 +67,18 @@ jobs:
           # test baseline versions on Ubuntu without MPI
           - NAME: Ubuntu Baseline, no MPI
             OS: ubuntu-latest
-            PY: '3.11'
-            NUMPY: 1.25
-            SCIPY: 1.11
+            PY: '3.12'
+            NUMPY: '1.26'
+            SCIPY: '1.13'
             PYOPTSPARSE: 'default'
             SNOPT: 7.7
 
           # test baseline versions on MacOS
           - NAME: MacOS Baseline
-            OS: macos-latest
-            PY: '3.11'
-            NUMPY: 1
-            SCIPY: 1
+            OS: macos-13
+            PY: '3.12'
+            NUMPY: '1.26'
+            SCIPY: '1.13'
             MPI4PY: true
             PYOPTSPARSE: 'default'
             PAROPT: true
@@ -79,19 +108,19 @@ jobs:
           # test baseline versions on Ubuntu without MPI with forced build
           - NAME: Ubuntu Baseline, no MPI, forced build
             OS: ubuntu-latest
-            PY: '3.11'
-            NUMPY: 1.25
-            SCIPY: 1.11
+            PY: '3.12'
+            NUMPY: '1.26'
+            SCIPY: '1.13'
             PYOPTSPARSE: 'default'
             SNOPT: 7.7
             FORCE_BUILD: true
 
           # test baseline versions on MacOS without MPI with forced build
           - NAME: MacOS Baseline, no MPI, forced build
-            OS: macos-latest
-            PY: '3.11'
-            NUMPY: 1
-            SCIPY: 1
+            OS: macos-12
+            PY: '3.12'
+            NUMPY: '1.26'
+            SCIPY: '1.13'
             MPI4PY: true
             PYOPTSPARSE: 'default'
             SNOPT: 7.7
@@ -107,6 +136,17 @@ jobs:
             PYOPTSPARSE: 'latest'
             SNOPT: 7.7
             FORCE_BUILD: true
+
+          # test baseline versions on MacOS latest (ARM64)
+          # - NAME: MacOS Baseline on ARM
+          #   OS: macos-latest
+          #   PY: '3.12'
+          #   NUMPY: '1.26'
+          #   SCIPY: '1.13'
+          #   MPI4PY: true
+          #   PYOPTSPARSE: 'default'
+          #   PAROPT: true
+          #   SNOPT: 7.7
 
     runs-on: ${{ matrix.OS }}
 
@@ -126,6 +166,12 @@ jobs:
           echo "Triggered by: ${GITHUB_EVENT_NAME}"
           echo "Initiated by: ${GITHUB_ACTOR}"
           echo "============================================================="
+
+      - name: Exit if this job was not selected
+        if: github.event_name == 'workflow_dispatch' &&  inputs.job_name != '' &&  inputs.job_name != matrix.NAME
+        uses: actions/github-script@v7
+        with:
+          script: core.setFailed('The ${{ matrix.NAME }} job was not included in the run, exiting...');
 
       - name: Create SSH key
         if: matrix.SNOPT
@@ -167,7 +213,7 @@ jobs:
           echo "Install MPI"
           echo "============================================================="
 
-          conda install cython compilers openmpi-mpicc mpi4py -q -y
+          conda install cython swig compilers openmpi-mpicc mpi4py -q -y
 
           echo "OMPI_MCA_rmaps_base_oversubscribe=1" >> $GITHUB_ENV
 
@@ -250,6 +296,27 @@ jobs:
           build_pyoptsparse -v $BRANCH $FORCE_BUILD $PAROPT $SNOPT $NO_IPOPT $LINEAR_SOLVER
 
           echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
+
+      # Enable tmate debugging of manually-triggered workflows if the input option was provided
+      #
+      # To access the terminal through the web-interface:
+      #    1. Click on the web-browser link printed out in this action from the github
+      #       workflow terminal
+      #    2. Press cntrl + c in the new tab that opens up to reveal the terminal
+      #    3. To activate the conda environment run:
+      #        $ source $CONDA/etc/profile.d/conda.sh
+      #        $ conda activate test
+      - name: Setup tmate session
+        if: github.event_name == 'workflow_dispatch' && inputs.debug_enabled && inputs.job_name == matrix.NAME
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+
+      - name: Setup tmate session after failure
+        if: github.event_name == 'workflow_dispatch' && inputs.debug_enabled && inputs.job_name == matrix.NAME && failure()
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
 
       - name: Display environment after
         run: |
