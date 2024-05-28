@@ -295,6 +295,16 @@ jobs:
 
           echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
 
+      - name: Display build log
+        if: failure()
+        run: |
+          for f in $(find /tmp/ -name 'meson-log.txt'); do
+            echo "============================================================="
+            echo $f
+            echo "============================================================="
+            cat $f
+          done
+
       # Enable tmate debugging of manually-triggered workflows if the input option was provided
       #
       # To access the terminal through the web-interface:

@@ -17,7 +17,6 @@ dependencies = [
     "numpy",
     "packaging",
     "sqlitedict",
-    "swig",
 ]
 
 [project.optional-dependencies]
