@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "build-pyoptsparse"
+dynamic = ["version"]
+description = "Automated installer for pyOptSparse"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.7"
+authors = [
+    { name = "OpenMDAO Team", email = "openmdao@openmdao.org" },
+]
+dependencies = [
+    "ansicolors",
+    "numpy",
+    "packaging",
+    "sqlitedict",
+]
+
+[project.optional-dependencies]
+paropt = [
+    "cython",
+    "mpi4py",
+]
+
+[project.scripts]
+build-pyoptsparse = "build_pyoptsparse:perform_install"
+build_pyoptsparse = "build_pyoptsparse:perform_install"
+
+[project.urls]
+Homepage = "http://openmdao.org"
+
+[tool.hatch.version]
+path = "__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/",
+]

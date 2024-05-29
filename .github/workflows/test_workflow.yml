@@ -59,7 +59,7 @@ jobs:
             PY: '3.12'
             NUMPY: '1.26'
             SCIPY: '1.13'
-            MPI4PY: true
+            MPICC: 4
             PYOPTSPARSE: 'default'
             PAROPT: true
             SNOPT: 7.7
@@ -76,10 +76,10 @@ jobs:
           # test baseline versions on MacOS
           - NAME: MacOS Baseline
             OS: macos-13
-            PY: '3.12'
+            PY: '3.11'
             NUMPY: '1.26'
             SCIPY: '1.13'
-            MPI4PY: true
+            MPICC: 4
             PYOPTSPARSE: 'default'
             PAROPT: true
             SNOPT: 7.7
@@ -90,7 +90,7 @@ jobs:
             PY: 3
             NUMPY: 1
             SCIPY: 1
-            MPI4PY: true
+            MPICC: 4
             PYOPTSPARSE: 'latest'
             PAROPT: true
             SNOPT: 7.7
@@ -118,10 +118,9 @@ jobs:
           # test baseline versions on MacOS without MPI with forced build
           - NAME: MacOS Baseline, no MPI, forced build
             OS: macos-12
-            PY: '3.12'
+            PY: '3.11'
             NUMPY: '1.26'
             SCIPY: '1.13'
-            MPI4PY: true
             PYOPTSPARSE: 'default'
             SNOPT: 7.7
             FORCE_BUILD: true
@@ -132,7 +131,6 @@ jobs:
             PY: 3
             NUMPY: 1
             SCIPY: 1
-            MPI4PY: true
             PYOPTSPARSE: 'latest'
             SNOPT: 7.7
             FORCE_BUILD: true
@@ -197,9 +195,9 @@ jobs:
 
       - name: Install
         run: |
-          conda install numpy=${{ matrix.NUMPY }} scipy=${{ matrix.SCIPY }} -q -y
+          conda install numpy=${{ matrix.NUMPY }} scipy=${{ matrix.SCIPY }} compilers cython swig -q -y
 
-          python -m pip install --upgrade pip
+          python -m ensurepip --upgrade
 
           echo "============================================================="
           echo "Install build_pyoptsparse"
@@ -207,13 +205,13 @@ jobs:
           python -m pip install .
 
       - name: Install MPI
-        if: matrix.MPI4PY
+        if: matrix.MPICC
         run: |
           echo "============================================================="
           echo "Install MPI"
           echo "============================================================="
 
-          conda install cython swig compilers openmpi-mpicc mpi4py -q -y
+          conda install openmpi-mpicc=${{ matrix.MPICC }} mpi4py -q -y
 
           echo "OMPI_MCA_rmaps_base_oversubscribe=1" >> $GITHUB_ENV
 
@@ -296,6 +294,16 @@ jobs:
           build_pyoptsparse -v $BRANCH $FORCE_BUILD $PAROPT $SNOPT $NO_IPOPT $LINEAR_SOLVER
 
           echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
+
+      - name: Display build log
+        if: failure()
+        run: |
+          for f in $(find /tmp/ -name 'meson-log.txt'); do
+            echo "============================================================="
+            echo $f
+            echo "============================================================="
+            cat $f
+          done
 
       # Enable tmate debugging of manually-triggered workflows if the input option was provided
       #

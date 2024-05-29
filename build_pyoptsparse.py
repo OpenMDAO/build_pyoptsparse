@@ -12,7 +12,7 @@ import tempfile
 from colors import *
 from shutil import which
 from packaging.version import Version, parse
-import setuptools
+
 
 # Default options that the user can change with command line switches
 opts = {
@@ -935,25 +935,7 @@ def install_pyoptsparse_from_src():
 
     if opts['build_pyoptsparse'] is True:
         patch_pyoptsparse_src()
-
-        python_ver = Version(platform.python_version())
-        stools_ver = Version(setuptools.__version__)
-        if python_ver < Version('3.12.0') and stools_ver >= Version('66.0'):
-            # `numpy.distutils` is deprecated since NumPy 1.23.0, as a result
-            # of the deprecation of `distutils` itself. It will be removed for
-            # Python >= 3.12. For older Python versions it will remain present.
-            # It is recommended to use `setuptools < 60.0` for those Python versions.
-            # For more details, see:
-            # https://numpy.org/devdocs/reference/distutils_status_migration.html
-            pip_install(pip_install_args=['setuptools<66.0'], pkg_desc='setuptools<66.0')
-            pip_install(pip_install_args=['--no-cache-dir', './'], pkg_desc='pyoptsparse')
-            try:
-                pip_install(pip_install_args=[f'setuptools=={stools_ver}'],
-                            pkg_desc='previous version of setuptools')
-            except Exception:
-                print(f'Unable to restore previous version of setuptools ({stools_ver})')
-        else:
-            pip_install(pip_install_args=['--no-cache-dir', './'], pkg_desc='pyoptsparse')
+        pip_install(pip_install_args=['--no-cache-dir', './'], pkg_desc='pyoptsparse')
     else:
         announce('Not building pyOptSparse by request')
         if opts['include_ipopt'] is True:
