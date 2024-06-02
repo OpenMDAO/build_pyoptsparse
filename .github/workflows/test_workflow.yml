@@ -197,8 +197,6 @@ jobs:
         run: |
           conda install numpy=${{ matrix.NUMPY }} scipy=${{ matrix.SCIPY }} compilers cython swig -q -y
 
-          python -m ensurepip --upgrade
-
           echo "============================================================="
           echo "Install build_pyoptsparse"
           echo "============================================================="
