@@ -344,7 +344,6 @@ jobs:
       - name: Run tests
         run: |
           python -m pip install testflo parameterized six
-          conda install -y -q gettext
 
           echo "============================================================="
           echo "Run tests from pyoptsparse repository"
