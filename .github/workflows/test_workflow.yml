@@ -81,7 +81,7 @@ jobs:
             SCIPY: '1.13'
             MPICC: 4
             PYOPTSPARSE: 'default'
-            PAROPT: true
+            # PAROPT: true
             SNOPT: 7.7
 
           # test latest versions
@@ -136,15 +136,15 @@ jobs:
             FORCE_BUILD: true
 
           # test baseline versions on MacOS latest (ARM64)
-          # - NAME: MacOS Baseline on ARM
-          #   OS: macos-latest
-          #   PY: '3.12'
-          #   NUMPY: '1.26'
-          #   SCIPY: '1.13'
-          #   MPI4PY: true
-          #   PYOPTSPARSE: 'default'
-          #   PAROPT: true
-          #   SNOPT: 7.7
+          - NAME: MacOS Baseline on ARM
+            OS: macos-latest
+            PY: '3.12'
+            NUMPY: '1.26'
+            SCIPY: '1.13'
+            BREW: true
+            MPICC: 4
+            PYOPTSPARSE: 'default'
+            SNOPT: 7.7
 
     runs-on: ${{ matrix.OS }}
 
@@ -195,7 +195,13 @@ jobs:
 
       - name: Install
         run: |
-          conda install numpy=${{ matrix.NUMPY }} scipy=${{ matrix.SCIPY }} compilers cython swig -q -y
+          conda install numpy=${{ matrix.NUMPY }} scipy=${{ matrix.SCIPY }} -q -y
+
+          if [[ "${{ matrix.BREW }}" ]]; then
+            brew install swig gcc meson
+          else
+            conda install compilers cython swig -q -y
+          fi
 
           echo "============================================================="
           echo "Install build_pyoptsparse"
@@ -209,7 +215,11 @@ jobs:
           echo "Install MPI"
           echo "============================================================="
 
-          conda install openmpi-mpicc=${{ matrix.MPICC }} mpi4py -q -y
+          if [[ "${{ matrix.BREW }}" ]]; then
+            brew install open-mpi mpi4py
+          else
+            conda install openmpi-mpicc=${{ matrix.MPICC }} mpi4py -q -y
+          fi
 
           echo "OMPI_MCA_rmaps_base_oversubscribe=1" >> $GITHUB_ENV
 
@@ -289,7 +299,7 @@ jobs:
           fi
 
           echo "build_pyoptsparse -v $BRANCH $FORCE_BUILD $PAROPT $SNOPT $NO_IPOPT $LINEAR_SOLVER"
-          build_pyoptsparse -v $BRANCH $FORCE_BUILD $PAROPT $SNOPT $NO_IPOPT $LINEAR_SOLVER
+          build_pyoptsparse -v $BRANCH $FORCE_BUILD $PAROPT $SNOPT $NO_IPOPT $LINEAR_SOLVER -d
 
           echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
 
@@ -302,6 +312,20 @@ jobs:
             echo "============================================================="
             cat $f
           done
+          if test -d /private/var/folders; then
+            for f in $(find /private/var/folders/ -name 'meson-log.txt'); do
+              echo "============================================================="
+              echo $f
+              echo "============================================================="
+              cat $f
+            done
+            for f in $(find /private/var/folders/ -name 'compile.log'); do
+              echo "============================================================="
+              echo $f
+              echo "============================================================="
+              cat $f
+            done
+          fi
 
       # Enable tmate debugging of manually-triggered workflows if the input option was provided
       #
@@ -344,7 +368,6 @@ jobs:
       - name: Run tests
         run: |
           python -m pip install testflo parameterized six
-          conda install -y -q gettext
 
           echo "============================================================="
           echo "Run tests from pyoptsparse repository"
