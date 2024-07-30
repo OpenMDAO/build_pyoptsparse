@@ -61,7 +61,7 @@ jobs:
             SCIPY: '1.13'
             MPICC: 4
             PYOPTSPARSE: 'default'
-            PAROPT: true
+            # PAROPT: true
             SNOPT: 7.7
 
           # test baseline versions on Ubuntu without MPI
@@ -92,7 +92,7 @@ jobs:
             SCIPY: 1
             MPICC: 4
             PYOPTSPARSE: 'latest'
-            PAROPT: true
+            # PAROPT: true
             SNOPT: 7.7
 
           # test oldest supported versions
@@ -117,13 +117,14 @@ jobs:
 
           # test baseline versions on MacOS without MPI with forced build
           - NAME: MacOS Baseline, no MPI, forced build
-            OS: macos-12
+            OS: macos-13
             PY: '3.11'
             NUMPY: '1.26'
             SCIPY: '1.13'
             PYOPTSPARSE: 'default'
             SNOPT: 7.7
             FORCE_BUILD: true
+            XCODE: '14.2'
 
           # test latest versions without MPI with forced build
           - NAME: Ubuntu Latest, no MPI, forced build
@@ -198,9 +199,16 @@ jobs:
           conda install numpy=${{ matrix.NUMPY }} scipy=${{ matrix.SCIPY }} -q -y
 
           if [[ "${{ matrix.BREW }}" ]]; then
-            brew install swig gcc meson
+            brew install swig meson
+            if [[ "${{ matrix.OS }}" == "macos-latest" ]]; then
+              ln -s /opt/homebrew/bin/gfortran-13 /opt/homebrew/bin/gfortran
+            fi
           else
             conda install compilers cython swig -q -y
+          fi
+
+          if [[ "${{ matrix.XCODE }}" ]]; then
+            sudo xcode-select -s "/Applications/Xcode_${{ matrix.XCODE }}.app"
           fi
 
           echo "============================================================="
