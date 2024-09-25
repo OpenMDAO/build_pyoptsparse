@@ -888,7 +888,8 @@ def copy_snopt_files(build_dirname):
     exclude_snopth_f = re.compile('.*snopth.f')
     for sfile in all_snopt_files:
         src_file = str(sfile)
-        if not exclude_snopth_f.match(src_file):
+        # copy source files, exclude any directories (e.g. f2py/)
+        if not exclude_snopth_f.match(src_file) and not sfile.is_dir():
             shutil.copy2(src_file, dest_dir)
 
     note_ok()

@@ -101,7 +101,7 @@ jobs:
             PY: 3.8
             NUMPY: 1.22
             SCIPY: 1.7
-            PYOPTSPARSE: 'v1.2'
+            PYOPTSPARSE: 'v2.9.0'
             NO_IPOPT: true
             SNOPT: 7.2
 
