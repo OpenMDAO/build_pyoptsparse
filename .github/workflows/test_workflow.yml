@@ -87,7 +87,7 @@ jobs:
           # test latest versions
           - NAME: Ubuntu Latest
             OS: ubuntu-latest
-            PY: 3
+            PY: '3.12'
             NUMPY: 1
             SCIPY: 1
             MPICC: 4
@@ -129,7 +129,7 @@ jobs:
           # test latest versions without MPI with forced build
           - NAME: Ubuntu Latest, no MPI, forced build
             OS: ubuntu-latest
-            PY: 3
+            PY: '3.12'
             NUMPY: 1
             SCIPY: 1
             PYOPTSPARSE: 'latest'
