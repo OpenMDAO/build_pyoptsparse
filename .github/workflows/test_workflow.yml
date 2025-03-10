@@ -226,7 +226,7 @@ jobs:
           if [[ "${{ matrix.BREW }}" ]]; then
             brew install open-mpi mpi4py
           else
-            conda install openmpi-mpicc=${{ matrix.MPICC }} mpi4py -q -y
+            conda install mpich-mpicc=${{ matrix.MPICC }} mpi4py -q -y
           fi
 
           echo "OMPI_MCA_rmaps_base_oversubscribe=1" >> $GITHUB_ENV
