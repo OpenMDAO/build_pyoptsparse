@@ -64,17 +64,6 @@ jobs:
             # PAROPT: true
             SNOPT: 7.7
 
-          # test default version on Ubuntu with NumPy 2.x
-          - NAME: Ubuntu Baseline
-            OS: ubuntu-latest
-            PY: '3.13'
-            NUMPY: '2.2'
-            SCIPY: '1.15'
-            MPICC: 4
-            PYOPTSPARSE: 'default'
-            # PAROPT: true
-            SNOPT: 7.7
-
           # test baseline versions on Ubuntu without MPI
           - NAME: Ubuntu Baseline, no MPI
             OS: ubuntu-latest
@@ -82,6 +71,17 @@ jobs:
             NUMPY: '1.26'
             SCIPY: '1.13'
             PYOPTSPARSE: 'default'
+            SNOPT: 7.7
+
+          # test default version on Ubuntu with NumPy 2.x
+          - NAME: Ubuntu Default
+            OS: ubuntu-latest
+            PY: '3.13'
+            NUMPY: '2.2'
+            SCIPY: '1.15'
+            MPICC: 4
+            PYOPTSPARSE: 'default'
+            # PAROPT: true
             SNOPT: 7.7
 
           # test baseline versions on MacOS
@@ -95,17 +95,6 @@ jobs:
             # PAROPT: true
             SNOPT: 7.7
 
-          # test default version on MacOS with NumPy 2.x
-          - NAME: MacOS Baseline
-            OS: macos-14
-            PY: '3.13'
-            NUMPY: '2.2'
-            SCIPY: '1.15'
-            MPICC: 4
-            PYOPTSPARSE: 'default'
-            # PAROPT: true
-            SNOPT: 7.7
-
           # test latest versions
           - NAME: Ubuntu Latest
             OS: ubuntu-latest
@@ -114,6 +103,17 @@ jobs:
             SCIPY: 1
             MPICC: 4
             PYOPTSPARSE: 'latest'
+            # PAROPT: true
+            SNOPT: 7.7
+
+          # test default version on MacOS with NumPy 2.x
+          - NAME: MacOS Default
+            OS: macos-14
+            PY: '3.13'
+            NUMPY: '2.2'
+            SCIPY: '1.15'
+            MPICC: 4
+            PYOPTSPARSE: 'default'
             # PAROPT: true
             SNOPT: 7.7
 

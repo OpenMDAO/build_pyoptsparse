@@ -11,8 +11,7 @@ from pathlib import Path, PurePath
 import tempfile
 from colors import *
 from shutil import which
-from packaging.version import Version, parse
-import numpy
+from packaging.version import parse
 
 
 # Default options that the user can change with command line switches
@@ -81,7 +80,7 @@ build_info = {
         'include_file': 'IpoptConfig.h'
     },
     'pyoptsparse': {
-        'branch': 'v2.12.0' if Version(numpy.__version__) < Version('2') else 'v2.13.0',
+        'branch': 'v2.13.0',
         'url': 'https://github.com/mdolab/pyoptsparse.git',
     },
     'hsl': {
