@@ -87,8 +87,8 @@ jobs:
           # test latest versions
           - NAME: Ubuntu Latest
             OS: ubuntu-latest
-            PY: '3.12'
-            NUMPY: 1
+            PY: 3
+            NUMPY: 2
             SCIPY: 1
             MPICC: 4
             PYOPTSPARSE: 'latest'
@@ -129,8 +129,8 @@ jobs:
           # test latest versions without MPI with forced build
           - NAME: Ubuntu Latest, no MPI, forced build
             OS: ubuntu-latest
-            PY: '3.12'
-            NUMPY: 1
+            PY: 3
+            NUMPY: 2
             SCIPY: 1
             PYOPTSPARSE: 'latest'
             SNOPT: 7.7
@@ -226,7 +226,7 @@ jobs:
           if [[ "${{ matrix.BREW }}" ]]; then
             brew install open-mpi mpi4py
           else
-            conda install openmpi-mpicc=${{ matrix.MPICC }} mpi4py -q -y
+            conda install mpich-mpicc=${{ matrix.MPICC }} mpi4py -q -y
           fi
 
           echo "OMPI_MCA_rmaps_base_oversubscribe=1" >> $GITHUB_ENV
