@@ -108,7 +108,7 @@ jobs:
 
           # test default version on MacOS with NumPy 2.x
           - NAME: MacOS Default
-            OS: macos-14
+            OS: macos-13
             PY: '3.13'
             NUMPY: '2.2'
             SCIPY: '1.15'
