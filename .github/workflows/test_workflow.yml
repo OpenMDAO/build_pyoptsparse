@@ -74,10 +74,10 @@ jobs:
             SNOPT: 7.7
 
           # test default version on Ubuntu with NumPy 2.x
-          - NAME: Ubuntu Default
+          - NAME: Ubuntu Default (Numpy 2.x)
             OS: ubuntu-latest
             PY: '3.13'
-            NUMPY: '2.2'
+            NUMPY: '2'
             SCIPY: '1.15'
             MPICC: 4
             PYOPTSPARSE: 'default'
@@ -107,10 +107,10 @@ jobs:
             SNOPT: 7.7
 
           # test default version on MacOS with NumPy 2.x
-          - NAME: MacOS Default
+          - NAME: MacOS Default (Numpy 2.x)
             OS: macos-13
             PY: '3.13'
-            NUMPY: '2.2'
+            NUMPY: '2'
             SCIPY: '1.15'
             MPICC: 4
             PYOPTSPARSE: 'default'
