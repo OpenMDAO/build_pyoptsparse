@@ -86,10 +86,21 @@ jobs:
 
           # test baseline versions on MacOS
           - NAME: MacOS Baseline
-            OS: macos-13
-            PY: '3.11'
+            OS: macos-latest
+            PY: '3.12'
             NUMPY: '1.26'
             SCIPY: '1.13'
+            MPICC: 4
+            PYOPTSPARSE: 'default'
+            # PAROPT: true
+            SNOPT: 7.7
+
+          # test default version on MacOS with NumPy 2.x
+          - NAME: MacOS Default (Numpy 2.x)
+            OS: macos-latest
+            PY: '3.13'
+            NUMPY: '2'
+            SCIPY: '1.15'
             MPICC: 4
             PYOPTSPARSE: 'default'
             # PAROPT: true
@@ -117,17 +128,6 @@ jobs:
             # PAROPT: true
             SNOPT: 7.7
 
-          # test default version on MacOS with NumPy 2.x
-          - NAME: MacOS Default (Numpy 2.x)
-            OS: macos-13
-            PY: '3.13'
-            NUMPY: '2'
-            SCIPY: '1.15'
-            MPICC: 4
-            PYOPTSPARSE: 'default'
-            # PAROPT: true
-            SNOPT: 7.7
-
           # test oldest supported versions
           - NAME: Ubuntu Oldest
             OS: ubuntu-latest
@@ -150,8 +150,8 @@ jobs:
 
           # test baseline versions on MacOS without MPI with forced build
           - NAME: MacOS Baseline, no MPI, forced build
-            OS: macos-13
-            PY: '3.11'
+            OS: macos-latest
+            PY: '3.12'
             NUMPY: '1.26'
             SCIPY: '1.13'
             PYOPTSPARSE: 'default'
@@ -168,17 +168,6 @@ jobs:
             PYOPTSPARSE: 'latest'
             SNOPT: 7.7
             FORCE_BUILD: true
-
-          # test baseline versions on MacOS latest (ARM64)
-          - NAME: MacOS Baseline on ARM
-            OS: macos-latest
-            PY: '3.12'
-            NUMPY: '1.26'
-            SCIPY: '1.13'
-            BREW: true
-            MPICC: 4
-            PYOPTSPARSE: 'default'
-            SNOPT: 7.7
 
     runs-on: ${{ matrix.OS }}
 
