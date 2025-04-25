@@ -95,7 +95,7 @@ jobs:
             # PAROPT: true
             SNOPT: 7.7
 
-          # test latest versions
+          # test latest release versions
           - NAME: Ubuntu Latest
             OS: ubuntu-latest
             PY: 3
@@ -103,6 +103,17 @@ jobs:
             SCIPY: 1
             MPICC: 4
             PYOPTSPARSE: 'latest'
+            # PAROPT: true
+            SNOPT: 7.7
+
+          # test latest development version
+          - NAME: Ubuntu Latest
+            OS: ubuntu-latest
+            PY: 3
+            NUMPY: 2
+            SCIPY: 1
+            MPICC: 4
+            PYOPTSPARSE: 'dev'
             # PAROPT: true
             SNOPT: 7.7
 
@@ -278,6 +289,8 @@ jobs:
 
           if [[ "${{ matrix.PYOPTSPARSE }}" == "default" ]]; then
             BRANCH=""
+          if [[ "${{ matrix.PYOPTSPARSE }}" == "dev" ]]; then
+            BRANCH="dev"
           elif [[ "${{ matrix.PYOPTSPARSE }}" == "latest" ]]; then
             LATEST_URL=`curl -fsSLI -o /dev/null -w %{url_effective} https://github.com/mdolab/pyoptsparse/releases/latest`
             LATEST_VER=`echo $LATEST_URL | awk '{split($0,a,"/tag/"); print a[2]}'`

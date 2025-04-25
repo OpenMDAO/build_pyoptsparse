@@ -603,7 +603,7 @@ def git_clone(build_key:str, auto_delete:bool=True):
     note_ok()
     pushd(dir_name)
 
-    if d["branch"]:
+    if d["branch"] and d["branch"] != 'dev':
         # We don't care about the "detached HEAD" warning:
         run_cmd(cmd_list=['git', 'config', '--local', 'advice.detachedHead', 'false'])
         note(f'Checking out branch {d["branch"]}')
@@ -719,7 +719,6 @@ def install_paropt_from_src():
     Git clone the PAROPT repo, build the library, and install it and the include files.
     """
     build_dir = git_clone('paropt')
-    pip_install(['Cython'], pkg_desc='Cython')
 
     # Use build defaults as per ParOpt instructions:
     Path('Makefile.in.info').rename('Makefile.in')
@@ -784,11 +783,15 @@ def install_ipopt(config_opts:list=None):
     if allow_install_with_conda() and opts['force_build'] is False:
         try:
             install_conda_pkg('ipopt')
+            if opts['pyoptsparse_version'] >= parse('2.14'):
+                install_conda_pkg('cyipopt')
             return
         except Exception as e:
             try_fallback('IPOPT', e)
 
     install_ipopt_from_src(config_opts=config_opts)
+    if opts['pyoptsparse_version'] >= parse('2.14'):
+        pip_install(['cyipopt', '--use-pep517'], pkg_desc='cyipopt')
 
 def install_mumps():
     """ Install MUMPS either through conda or building. """
@@ -918,6 +921,8 @@ def patch_pyoptsparse_src():
 
 def install_pyoptsparse_from_src():
     """ Git clone the pyOptSparse repo and use pip to install it. """
+    pip_install(['Cython'], pkg_desc='Cython')
+
     # First, build PAROPT if selected:
     if opts['include_paropt'] is True:
         install_paropt_from_src()
@@ -928,6 +933,9 @@ def install_pyoptsparse_from_src():
         os.environ['IPOPT_INC'] = get_coin_inc_dir()
         os.environ['IPOPT_LIB'] = str(Path(opts["prefix"]) / 'lib')
         os.environ['IPOPT_DIR'] = str(Path(opts["prefix"]))
+        if opts['pyoptsparse_version'] >= parse('2.14'):
+            os.environ['PKG_CONFIG_PATH'] = os.environ['PKG_CONFIG_PATH'] + ':' + \
+                                            os.environ['IPOPT_DIR'] + '/lib/pkgconfig'
     os.environ['CFLAGS'] = '-Wno-implicit-function-declaration -std=c99'
 
     # Pull in SNOPT source:
