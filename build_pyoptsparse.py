@@ -81,7 +81,7 @@ build_info = {
         'include_file': 'IpoptConfig.h'
     },
     'pyoptsparse': {
-        'branch': 'v2.10.1' if parse(numpy.__version__) < parse('2.0') else 'v2.13.0',
+        'branch': 'v2.10.1' if parse(numpy.__version__) < parse('2.0') else 'v2.13.1',
         'url': 'https://github.com/mdolab/pyoptsparse.git',
     },
     'hsl': {
@@ -505,7 +505,7 @@ def install_conda_pkg(pkg_name:str):
         The name of the package to install.
     """
     note(f'Installing {pkg_name.upper()} with conda')
-    install_args = ['install', '-y', pkg_name]
+    install_args = ['install', '-q', '-y', pkg_name]
     run_conda_cmd(cmd_args=install_args)
     note_ok()
 
@@ -603,7 +603,7 @@ def git_clone(build_key:str, auto_delete:bool=True):
     note_ok()
     pushd(dir_name)
 
-    if d["branch"] and d["branch"] != 'dev':
+    if d["branch"]:
         # We don't care about the "detached HEAD" warning:
         run_cmd(cmd_list=['git', 'config', '--local', 'advice.detachedHead', 'false'])
         note(f'Checking out branch {d["branch"]}')

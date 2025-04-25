@@ -26,13 +26,14 @@ on:
           - ''
           - 'Ubuntu Baseline'
           - 'Ubuntu Baseline, no MPI'
+          - 'Ubuntu Default (Numpy 2.x)''
           - 'MacOS Baseline'
+          - 'MacOS Default (Numpy 2.x)''
           - 'Ubuntu Latest'
           - 'Ubuntu Oldest'
           - 'Ubuntu Baseline, no MPI, forced build'
           - 'MacOS Baseline, no MPI, forced build'
           - 'Ubuntu Latest, no MPI, forced build'
-          - 'MacOS Baseline on ARM'
         required: false
         default: ''
       debug_enabled:
@@ -117,17 +118,6 @@ jobs:
             # PAROPT: true
             SNOPT: 7.7
 
-          # test latest development version
-          - NAME: Ubuntu Latest
-            OS: ubuntu-latest
-            PY: 3
-            NUMPY: 2
-            SCIPY: 1
-            MPICC: 4
-            PYOPTSPARSE: 'dev'
-            # PAROPT: true
-            SNOPT: 7.7
-
           # test oldest supported versions
           - NAME: Ubuntu Oldest
             OS: ubuntu-latest
@@ -157,7 +147,6 @@ jobs:
             PYOPTSPARSE: 'default'
             SNOPT: 7.7
             FORCE_BUILD: true
-            XCODE: '14.2'
 
           # test latest versions without MPI with forced build
           - NAME: Ubuntu Latest, no MPI, forced build
