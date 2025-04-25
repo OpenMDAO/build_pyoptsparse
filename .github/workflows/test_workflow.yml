@@ -140,13 +140,14 @@ jobs:
 
           # test baseline versions on MacOS without MPI with forced build
           - NAME: MacOS Baseline, no MPI, forced build
-            OS: macos-latest
-            PY: '3.12'
+            OS: macos-13
+            PY: '3.11'
             NUMPY: '1.26'
             SCIPY: '1.13'
             PYOPTSPARSE: 'default'
             SNOPT: 7.7
             FORCE_BUILD: true
+            XCODE: '14.2'
 
           # test latest versions without MPI with forced build
           - NAME: Ubuntu Latest, no MPI, forced build
