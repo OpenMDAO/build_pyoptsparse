@@ -780,6 +780,11 @@ def install_ipopt(config_opts:list=None):
     config_opts : list
         Additional options to use with the IPOPT configure script if building.
     """
+    if opts['pyoptsparse_version'] >= parse('2.14'):
+        pkg_path = os.environ['PKG_CONFIG_PATH'] + ':' if 'PKG_CONFIG_PATH' in os.environ else ''
+        pkg_dir = Path(opts['prefix']) / 'lib' / 'pkgconfig'
+        os.environ['PKG_CONFIG_PATH'] = pkg_path + str(pkg_dir)
+
     if allow_install_with_conda() and opts['force_build'] is False:
         try:
             install_conda_pkg('ipopt')
@@ -933,9 +938,6 @@ def install_pyoptsparse_from_src():
         os.environ['IPOPT_INC'] = get_coin_inc_dir()
         os.environ['IPOPT_LIB'] = str(Path(opts["prefix"]) / 'lib')
         os.environ['IPOPT_DIR'] = str(Path(opts["prefix"]))
-        if opts['pyoptsparse_version'] >= parse('2.14'):
-            os.environ['PKG_CONFIG_PATH'] = os.environ['PKG_CONFIG_PATH'] + ':' + \
-                                            os.environ['IPOPT_DIR'] + '/lib/pkgconfig'
     os.environ['CFLAGS'] = '-Wno-implicit-function-declaration -std=c99'
 
     # Pull in SNOPT source:
