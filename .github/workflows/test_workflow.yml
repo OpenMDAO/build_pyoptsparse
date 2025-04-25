@@ -87,8 +87,8 @@ jobs:
 
           # test baseline versions on MacOS
           - NAME: MacOS Baseline
-            OS: macos-latest
-            PY: '3.12'
+            OS: macos-13
+            PY: '3.11'
             NUMPY: '1.26'
             SCIPY: '1.13'
             MPICC: 4
@@ -98,13 +98,24 @@ jobs:
 
           # test default version on MacOS with NumPy 2.x
           - NAME: MacOS Default (Numpy 2.x)
-            OS: macos-latest
+            OS: macos-13
             PY: '3.13'
             NUMPY: '2'
             SCIPY: '1.15'
             MPICC: 4
             PYOPTSPARSE: 'default'
             # PAROPT: true
+            SNOPT: 7.7
+
+          # test baseline versions on MacOS latest (ARM64)
+          - NAME: MacOS Baseline on ARM
+            OS: macos-latest
+            PY: '3.12'
+            NUMPY: '1.26'
+            SCIPY: '1.13'
+            BREW: true
+            MPICC: 4
+            PYOPTSPARSE: 'default'
             SNOPT: 7.7
 
           # test latest release versions
