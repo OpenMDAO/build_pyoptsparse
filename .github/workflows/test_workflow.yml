@@ -24,15 +24,15 @@ on:
         type: choice
         options:
           - ''
-          - 'Ubuntu Baseline'
-          - 'Ubuntu Baseline, no MPI'
-          - 'Ubuntu Default (Numpy 2.x)'
-          - 'MacOS Baseline'
-          - 'MacOS Default (Numpy 2.x)'
+          - 'Ubuntu Default'
+          - 'Ubuntu Default, no MPI'
+          - 'Ubuntu Default, Numpy 2.x'
+          - 'MacOS Default'
+          - 'MacOS Default, Numpy 2.x'
           - 'Ubuntu Latest'
           - 'Ubuntu Oldest'
-          - 'Ubuntu Baseline, no MPI, forced build'
-          - 'MacOS Baseline, no MPI, forced build'
+          - 'Ubuntu Default, no MPI, forced build'
+          - 'MacOS Default, no MPI, forced build'
           - 'Ubuntu Latest, no MPI, forced build'
         required: false
         default: ''
@@ -54,8 +54,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # test baseline versions on Ubuntu
-          - NAME: Ubuntu Baseline
+          # test default version on Ubuntu
+          - NAME: Ubuntu Default
             OS: ubuntu-latest
             PY: '3.12'
             NUMPY: '1.26'
@@ -65,8 +65,8 @@ jobs:
             # PAROPT: true
             SNOPT: 7.7
 
-          # test baseline versions on Ubuntu without MPI
-          - NAME: Ubuntu Baseline, no MPI
+          # test default version on Ubuntu without MPI
+          - NAME: Ubuntu Default, no MPI
             OS: ubuntu-latest
             PY: '3.12'
             NUMPY: '1.26'
@@ -75,7 +75,7 @@ jobs:
             SNOPT: 7.7
 
           # test default version on Ubuntu with NumPy 2.x
-          - NAME: Ubuntu Default (Numpy 2.x)
+          - NAME: Ubuntu Default, Numpy 2.x
             OS: ubuntu-latest
             PY: '3.13'
             NUMPY: '2'
@@ -85,8 +85,8 @@ jobs:
             # PAROPT: true
             SNOPT: 7.7
 
-          # test baseline versions on MacOS
-          - NAME: MacOS Baseline
+          # test default version on MacOS
+          - NAME: MacOS Default
             OS: macos-13
             PY: '3.11'
             NUMPY: '1.26'
@@ -107,8 +107,8 @@ jobs:
             # PAROPT: true
             SNOPT: 7.7
 
-          # test baseline versions on MacOS latest (ARM64)
-          - NAME: MacOS Baseline on ARM
+          # test default version on MacOS latest (ARM64)
+          - NAME: MacOS Default on ARM
             OS: macos-latest
             PY: '3.12'
             NUMPY: '1.26'
@@ -139,8 +139,8 @@ jobs:
             NO_IPOPT: true
             SNOPT: 7.2
 
-          # test baseline versions on Ubuntu without MPI with forced build
-          - NAME: Ubuntu Baseline, no MPI, forced build
+          # test default version on Ubuntu without MPI with forced build
+          - NAME: Ubuntu Default, no MPI, forced build
             OS: ubuntu-latest
             PY: '3.12'
             NUMPY: '1.26'
@@ -149,8 +149,8 @@ jobs:
             SNOPT: 7.7
             FORCE_BUILD: true
 
-          # test baseline versions on MacOS without MPI with forced build
-          - NAME: MacOS Baseline, no MPI, forced build
+          # test default version on MacOS without MPI with forced build
+          - NAME: MacOS Default, no MPI, forced build
             OS: macos-13
             PY: '3.11'
             NUMPY: '1.26'
@@ -160,7 +160,7 @@ jobs:
             FORCE_BUILD: true
             XCODE: '14.2'
 
-          # test latest versions without MPI with forced build
+          # test latest version without MPI with forced build
           - NAME: Ubuntu Latest, no MPI, forced build
             OS: ubuntu-latest
             PY: 3
