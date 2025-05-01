@@ -11,7 +11,8 @@ from pathlib import Path, PurePath
 import tempfile
 from colors import *
 from shutil import which
-from packaging.version import Version, parse
+from packaging.version import parse
+import numpy
 
 
 # Default options that the user can change with command line switches
@@ -80,7 +81,7 @@ build_info = {
         'include_file': 'IpoptConfig.h'
     },
     'pyoptsparse': {
-        'branch': 'v2.10.1',
+        'branch': 'v2.10.1' if parse(numpy.__version__) < parse('2.0') else 'v2.13.1',
         'url': 'https://github.com/mdolab/pyoptsparse.git',
     },
     'hsl': {
@@ -504,7 +505,7 @@ def install_conda_pkg(pkg_name:str):
         The name of the package to install.
     """
     note(f'Installing {pkg_name.upper()} with conda')
-    install_args = ['install', '-y', pkg_name]
+    install_args = ['install', '-q', '-y', pkg_name]
     run_conda_cmd(cmd_args=install_args)
     note_ok()
 
@@ -718,7 +719,6 @@ def install_paropt_from_src():
     Git clone the PAROPT repo, build the library, and install it and the include files.
     """
     build_dir = git_clone('paropt')
-    pip_install(['Cython'], pkg_desc='Cython')
 
     # Use build defaults as per ParOpt instructions:
     Path('Makefile.in.info').rename('Makefile.in')
@@ -780,14 +780,23 @@ def install_ipopt(config_opts:list=None):
     config_opts : list
         Additional options to use with the IPOPT configure script if building.
     """
+    if opts['pyoptsparse_version'] >= parse('2.14'):
+        pkg_path = os.environ['PKG_CONFIG_PATH'] + ':' if 'PKG_CONFIG_PATH' in os.environ else ''
+        pkg_dir = Path(opts['prefix']) / 'lib' / 'pkgconfig'
+        os.environ['PKG_CONFIG_PATH'] = pkg_path + str(pkg_dir)
+
     if allow_install_with_conda() and opts['force_build'] is False:
         try:
             install_conda_pkg('ipopt')
+            if opts['pyoptsparse_version'] >= parse('2.14'):
+                install_conda_pkg('cyipopt')
             return
         except Exception as e:
             try_fallback('IPOPT', e)
 
     install_ipopt_from_src(config_opts=config_opts)
+    if opts['pyoptsparse_version'] >= parse('2.14'):
+        pip_install(['cyipopt', '--use-pep517'], pkg_desc='cyipopt')
 
 def install_mumps():
     """ Install MUMPS either through conda or building. """
@@ -917,6 +926,8 @@ def patch_pyoptsparse_src():
 
 def install_pyoptsparse_from_src():
     """ Git clone the pyOptSparse repo and use pip to install it. """
+    pip_install(['Cython'], pkg_desc='Cython')
+
     # First, build PAROPT if selected:
     if opts['include_paropt'] is True:
         install_paropt_from_src()
