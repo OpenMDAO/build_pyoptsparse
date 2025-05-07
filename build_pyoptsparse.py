@@ -1163,7 +1163,7 @@ If it does, set up Intel OneAPI {yellow('before')} activating your conda env.
         check_make(errors)
         required_cmds.extend(['git', os.environ['CC'], os.environ['CXX'], os.environ['FC']])
         if opts['build_pyoptsparse'] is True:
-            required_cmds.extend(['uv', 'swig'])
+            required_cmds.extend(['swig'])
 
     if opts['compile_required'] is False:
         required_cmds.append(opts['conda_cmd'])
