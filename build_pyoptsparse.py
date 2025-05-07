@@ -1202,17 +1202,17 @@ If it does, set up Intel OneAPI {yellow('before')} activating your conda env.
 
 def select_intel_compilers():
     """ Set environment variables to use Intel compilers. """
-    os.environ.get('CC', 'icc')
-    os.environ.get('CXX', 'icpc')
-    os.environ.get('FC', 'ifort')
+    os.environ['CC'] = os.environ.get('CC', 'icc')
+    os.environ['CXX'] = os.environ.get('CXX', 'icpc')
+    os.environ['FC'] = os.environ.get('FC', 'ifort')
     sys_info['gcc_major_ver'] = -1
     sys_info['gcc_is_apple_clang'] = False
 
 def select_gnu_compilers():
     """ Set environment variables to use GNU compilers. """
-    os.environ.get('CC', 'gcc')
-    os.environ.get('CXX', 'g++')
-    os.environ.get('FC', 'gfortran')
+    os.environ['CC'] = os.environ.get('CC', 'gcc')
+    os.environ['CXX'] = os.environ.get('CXX', 'g++')
+    os.environ['FC'] = os.environ.get('FC', 'gfortran')
     gcc_ver = subprocess.run(['gcc', '-dumpversion'], capture_output=True)
     sys_info['gcc_major_ver'] = int(gcc_ver.stdout.decode('UTF-8').split('.')[0])
     gcc_version = subprocess.run(['gcc', '--version'], capture_output=True)
