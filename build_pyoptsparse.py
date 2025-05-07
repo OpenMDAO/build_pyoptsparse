@@ -36,7 +36,8 @@ opts = {
     'uninstall': False,
     'pyoptsparse_version': None, # Parsed pyOptSparse version, set by finish_setup()
     'make_name': 'make',
-    'fall_back': False
+    'fall_back': False,
+    'pip_cmd': 'pip'
 }
 
 # Information about the host, status, and constants
@@ -184,6 +185,9 @@ def process_command_line():
     parser.add_argument("-p", "--prefix",
                         help=f"Where to install if not a conda/venv environment. Default: {opts['prefix']}",
                         default=opts['prefix'])
+    parser.add_argument("--pip-cmd",
+                    help=f"pip command to use. Set to to --pip-cmd=='uv pip' if using uv. Default: {opts['pip_cmd']}",
+                    default=opts['pip_cmd'])
     parser.add_argument("-s", "--snopt-dir",
                         help="Include SNOPT from SNOPT-DIR. Default: no SNOPT",
                         default=opts['snopt_dir'])
@@ -250,6 +254,7 @@ def process_command_line():
 
     opts['prefix'] = args.prefix
     opts['build_pyoptsparse'] = not args.no_install
+    opts['pip_cmd'] = args.pip_cmd
     opts['snopt_dir'] = args.snopt_dir
     opts['hsl_tar_file'] = args.hsl_tar_file
     opts['verbose'] = args.verbose
@@ -487,11 +492,11 @@ def pip_install(pip_install_args, pkg_desc='packages'):
         Each token of the command line is a separate member of the list. The
         is prepended with 'python -m pip install'; '-q' is added when not verbose.
     """
-    cmd_list = ['python', '-m', 'pip', 'install']
+    cmd_list = opts['pip_cmd'].split() + ['install']
     if opts['verbose'] is False:
         cmd_list.append('-q')
     cmd_list.extend(pip_install_args)
-    note(f'Installing {pkg_desc} with pip')
+    note(f'Installing {pkg_desc} with {opts["pip_cmd"]}')
     run_cmd(cmd_list)
     note_ok()
 
@@ -1158,7 +1163,7 @@ If it does, set up Intel OneAPI {yellow('before')} activating your conda env.
         check_make(errors)
         required_cmds.extend(['git', os.environ['CC'], os.environ['CXX'], os.environ['FC']])
         if opts['build_pyoptsparse'] is True:
-            required_cmds.extend(['pip', 'swig'])
+            required_cmds.extend(['swig'])
 
     if opts['compile_required'] is False:
         required_cmds.append(opts['conda_cmd'])
@@ -1197,17 +1202,17 @@ If it does, set up Intel OneAPI {yellow('before')} activating your conda env.
 
 def select_intel_compilers():
     """ Set environment variables to use Intel compilers. """
-    os.environ['CC'] = 'icc'
-    os.environ['CXX'] = 'icpc'
-    os.environ['FC'] = 'ifort'
+    os.environ['CC'] = os.environ.get('CC', 'icc')
+    os.environ['CXX'] = os.environ.get('CXX', 'icpc')
+    os.environ['FC'] = os.environ.get('FC', 'ifort')
     sys_info['gcc_major_ver'] = -1
     sys_info['gcc_is_apple_clang'] = False
 
 def select_gnu_compilers():
     """ Set environment variables to use GNU compilers. """
-    os.environ['CC'] = 'gcc'
-    os.environ['CXX'] = 'g++'
-    os.environ['FC'] = 'gfortran'
+    os.environ['CC'] = os.environ.get('CC', 'gcc')
+    os.environ['CXX'] = os.environ.get('CXX', 'g++')
+    os.environ['FC'] = os.environ.get('FC', 'gfortran')
     gcc_ver = subprocess.run(['gcc', '-dumpversion'], capture_output=True)
     sys_info['gcc_major_ver'] = int(gcc_ver.stdout.decode('UTF-8').split('.')[0])
     gcc_version = subprocess.run(['gcc', '--version'], capture_output=True)
