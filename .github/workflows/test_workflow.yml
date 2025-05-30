@@ -27,8 +27,8 @@ on:
           - 'Ubuntu Default'
           - 'Ubuntu Default, no MPI'
           - 'Ubuntu Default, Numpy 2.x'
-          - 'MacOS Default'
-          - 'MacOS Default, Numpy 2.x'
+          - 'MacOS Default (Intel)'
+          - 'MacOS Default (ARM), NumPy 2.x'
           - 'Ubuntu Latest'
           - 'Ubuntu Oldest'
           - 'Ubuntu Default, no MPI, forced build'
@@ -54,18 +54,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # test default version on Ubuntu
+
+          # test default pyoptsparse on Ubuntu, Numpy 1.x
           - NAME: Ubuntu Default
             OS: ubuntu-latest
             PY: '3.12'
             NUMPY: '1.26'
             SCIPY: '1.13'
-            MPICC: 4
+            MPI: true
             PYOPTSPARSE: 'default'
             # PAROPT: true
             SNOPT: 7.7
 
-          # test default version on Ubuntu without MPI
+          # test default pyoptsparse on Ubuntu, NumPy 1.x, no MPI
           - NAME: Ubuntu Default, no MPI
             OS: ubuntu-latest
             PY: '3.12'
@@ -74,62 +75,50 @@ jobs:
             PYOPTSPARSE: 'default'
             SNOPT: 7.7
 
-          # test default version on Ubuntu with NumPy 2.x
+          # test default pyoptsparse on Ubuntu, Numpy 2.x
           - NAME: Ubuntu Default, Numpy 2.x
             OS: ubuntu-latest
             PY: '3.13'
-            NUMPY: '2'
+            NUMPY: '2.2'
             SCIPY: '1.15'
-            MPICC: 4
+            MPI: true
             PYOPTSPARSE: 'default'
             # PAROPT: true
             SNOPT: 7.7
 
-          # test default version on MacOS
-          - NAME: MacOS Default
+          # test default pyoptsparse on MacOS Legacy (Intel), NumPy 1.x
+          - NAME: MacOS Default (Intel)
             OS: macos-13
             PY: '3.11'
             NUMPY: '1.26'
             SCIPY: '1.13'
-            MPICC: 4
+            MPI: true
             PYOPTSPARSE: 'default'
             # PAROPT: true
             SNOPT: 7.7
 
-          # test default version on MacOS with NumPy 2.x
-          - NAME: MacOS Default, Numpy 2.x
-            OS: macos-13
-            PY: '3.13'
-            NUMPY: '2'
-            SCIPY: '1.15'
-            MPICC: 4
-            PYOPTSPARSE: 'default'
-            # PAROPT: true
-            SNOPT: 7.7
-
-          # test default version on MacOS latest (ARM64)
-          - NAME: MacOS Default on ARM
+          # test default pyoptsparse on MacOS latest (ARM), NumPy 2.x
+          - NAME: MacOS Default (ARM), NumPy 2.x
             OS: macos-latest
             PY: '3.12'
             NUMPY: '1.26'
             SCIPY: '1.13'
-            BREW: true
-            MPICC: 4
+            MPI: true
             PYOPTSPARSE: 'default'
             SNOPT: 7.7
 
-          # test latest release versions
+          # test latest release of pyoptsparse, NumPy 2.x
           - NAME: Ubuntu Latest
             OS: ubuntu-latest
-            PY: 3
-            NUMPY: 2
-            SCIPY: 1
-            MPICC: 4
+            PY: 3.13
+            NUMPY: 2.2
+            SCIPY: 1.15
+            MPI: true
             PYOPTSPARSE: 'latest'
             # PAROPT: true
             SNOPT: 7.7
 
-          # test oldest supported versions
+          # test oldest supported version of pyoptsparse
           - NAME: Ubuntu Oldest
             OS: ubuntu-latest
             PY: 3.8
@@ -139,7 +128,7 @@ jobs:
             NO_IPOPT: true
             SNOPT: 7.2
 
-          # test default version on Ubuntu without MPI with forced build
+          # test default pyoptsparse on Ubuntu without MPI with forced build, NumPy 1.x
           - NAME: Ubuntu Default, no MPI, forced build
             OS: ubuntu-latest
             PY: '3.12'
@@ -149,7 +138,7 @@ jobs:
             SNOPT: 7.7
             FORCE_BUILD: true
 
-          # test default version on MacOS without MPI with forced build
+          # test default pyoptsparse on MacOS without MPI with forced build
           - NAME: MacOS Default, no MPI, forced build
             OS: macos-13
             PY: '3.11'
@@ -160,12 +149,12 @@ jobs:
             FORCE_BUILD: true
             XCODE: '14.2'
 
-          # test latest version without MPI with forced build
+          # test latest pyoptsparse without MPI with forced build
           - NAME: Ubuntu Latest, no MPI, forced build
             OS: ubuntu-latest
-            PY: 3
-            NUMPY: 2
-            SCIPY: 1
+            PY: 3.13
+            NUMPY: 2.2
+            SCIPY: 1.15
             PYOPTSPARSE: 'latest'
             SNOPT: 7.7
             FORCE_BUILD: true
@@ -215,20 +204,12 @@ jobs:
           miniconda-version: latest
           python-version: ${{ matrix.PY }}
           channels: conda-forge
-          channel-priority: true
 
       - name: Install
         run: |
           conda install numpy=${{ matrix.NUMPY }} scipy=${{ matrix.SCIPY }} -q -y
 
-          if [[ "${{ matrix.BREW }}" ]]; then
-            brew install swig meson
-            if [[ "${{ matrix.OS }}" == "macos-latest" ]]; then
-              ln -s /opt/homebrew/bin/gfortran-13 /opt/homebrew/bin/gfortran
-            fi
-          else
-            conda install compilers cython swig -q -y
-          fi
+          conda install cython swig compilers cmake meson liblapack openblas -q -y
 
           if [[ "${{ matrix.XCODE }}" ]]; then
             sudo xcode-select -s "/Applications/Xcode_${{ matrix.XCODE }}.app"
@@ -240,19 +221,16 @@ jobs:
           python -m pip install .
 
       - name: Install MPI
-        if: matrix.MPICC
+        if: matrix.MPI
         run: |
           echo "============================================================="
           echo "Install MPI"
           echo "============================================================="
+          conda install openmpi-mpicc mpi4py -q -y
 
-          if [[ "${{ matrix.BREW }}" ]]; then
-            brew install open-mpi mpi4py
-          else
-            conda install mpich-mpicc=${{ matrix.MPICC }} mpi4py -q -y
-          fi
-
+          echo "PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe" >> $GITHUB_ENV
           echo "OMPI_MCA_rmaps_base_oversubscribe=1" >> $GITHUB_ENV
+          echo "OMPI_MCA_btl=^openib" >> $GITHUB_ENV
 
       - name: Display environment before
         run: |
