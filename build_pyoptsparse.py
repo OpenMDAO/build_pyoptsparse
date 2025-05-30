@@ -186,7 +186,7 @@ def process_command_line():
                         help=f"Where to install if not a conda/venv environment. Default: {opts['prefix']}",
                         default=opts['prefix'])
     parser.add_argument("--pip-cmd",
-                    help=f"pip command to use. Set to to --pip-cmd=='uv pip' if using uv. Default: {opts['pip_cmd']}",
+                    help=f"pip command to use. Set to to --pip-cmd='uv pip' if using uv. Default: {opts['pip_cmd']}",
                     default=opts['pip_cmd'])
     parser.add_argument("-s", "--snopt-dir",
                         help="Include SNOPT from SNOPT-DIR. Default: no SNOPT",
