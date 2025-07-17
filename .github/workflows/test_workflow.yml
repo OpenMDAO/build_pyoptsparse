@@ -30,6 +30,8 @@ on:
           - 'MacOS Default (Intel)'
           - 'MacOS Default (ARM), NumPy 2.x'
           - 'Ubuntu Latest'
+          - 'Ubuntu Default, no SciPy'
+          - 'MacOS Default, SciPy from PyPI'
           - 'Ubuntu Oldest'
           - 'Ubuntu Default, no MPI, forced build'
           - 'MacOS Default, no MPI, forced build'
@@ -112,9 +114,31 @@ jobs:
             OS: ubuntu-latest
             PY: 3.13
             NUMPY: 2.2
-            SCIPY: 1.15
+            SCIPY: 1.16
             MPI: true
             PYOPTSPARSE: 'latest'
+            # PAROPT: true
+            SNOPT: 7.7
+
+          # test default release of pyoptsparse, NumPy 2.x, no scipy
+          - NAME: Ubuntu Default, no SciPy
+            OS: ubuntu-latest
+            PY: 3.13
+            NUMPY: 2.2
+            MPI: true
+            PYOPTSPARSE: 'default'
+            # PAROPT: true
+            SNOPT: 7.7
+
+          # test default release of pyoptsparse, NumPy 2.x, scipy from pypi
+          - NAME: MacOS Default, SciPy from PyPI
+            OS: macos-latest
+            PY: '3.12'
+            NUMPY: '1.26'
+            SCIPY: '1.13'
+            SCIPY_FROM_PYPI: true
+            MPI: true
+            PYOPTSPARSE: 'default'
             # PAROPT: true
             SNOPT: 7.7
 
@@ -207,7 +231,33 @@ jobs:
 
       - name: Install
         run: |
-          conda install numpy=${{ matrix.NUMPY }} scipy=${{ matrix.SCIPY }} -q -y
+          if [[ "${{ matrix.NUMPY}}" ]]; then
+            if [[ "${{ matrix.SCIPY_FROM_PYPI }}" ]]; then
+              echo "============================================================="
+              echo "Install NumPy from PyPI"
+              echo "============================================================="
+              python -m pip install numpy==${{ matrix.NUMPY }}
+            else
+              echo "============================================================="
+              echo "Install NumPy from conda-forge"
+              echo "============================================================="
+              conda install numpy=${{ matrix.NUMPY }} -c conda-forge -q -y
+            fi
+          fi
+
+          if [[ "${{ matrix.SCIPY}}" ]]; then
+            if [[ "${{ matrix.SCIPY_FROM_PYPI }}" ]]; then
+              echo "============================================================="
+              echo "Install SciPy from PyPI"
+              echo "============================================================="
+              python -m pip install scipy==${{ matrix.SCIPY }}
+            else
+              echo "============================================================="
+              echo "Install SciPy from conda-forge"
+              echo "============================================================="
+              conda install scipy=${{ matrix.SCIPY }} -c conda-forge -q -y
+            fi
+          fi
 
           conda install cython swig compilers cmake meson liblapack openblas -q -y
 
@@ -246,8 +296,10 @@ jobs:
           python -c "import numpy; assert str(numpy.__version__).startswith(str(${{ matrix.NUMPY }})), \
                     f'Numpy version {numpy.__version__} is not the requested version (${{ matrix.NUMPY }})'"
 
-          python -c "import scipy; assert str(scipy.__version__).startswith(str(${{ matrix.SCIPY }})), \
-                    f'Scipy version {scipy.__version__} is not the requested version (${{ matrix.SCIPY }})'"
+          if [[ "${{ matrix.SCIPY}}" ]]; then
+            python -c "import scipy; assert str(scipy.__version__).startswith(str(${{ matrix.SCIPY }})), \
+                      f'Scipy version {scipy.__version__} is not the requested version (${{ matrix.SCIPY }})'"
+          fi
 
       - name: Build pyOptSparse
         run: |

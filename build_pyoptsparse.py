@@ -500,7 +500,7 @@ def pip_install(pip_install_args, pkg_desc='packages'):
     run_cmd(cmd_list)
     note_ok()
 
-def install_conda_pkg(pkg_name:str):
+def install_conda_pkg(pkg_name:str, version:str=None):
     """
     Shorthand for performing a 'conda install' operation for a single package.
 
@@ -510,6 +510,8 @@ def install_conda_pkg(pkg_name:str):
         The name of the package to install.
     """
     note(f'Installing {pkg_name.upper()} with conda')
+    if version is not None:
+        pkg_name += f'={version}'
     install_args = ['install', '-q', '-y', pkg_name]
     run_conda_cmd(cmd_args=install_args)
     note_ok()
@@ -1325,8 +1327,30 @@ Otherwise, you may encounter errors such as:
     announce('SUCCESS!')
     exit(0)
 
+
+def get_package_info(pkgname:str) -> dict:
+    info = {
+        'installed': False,
+        'version': None,
+        'origin': None  # 'conda-forge', 'pypi', or 'unknown'
+    }
+    try:
+        result = subprocess.run(['conda', 'list', pkgname], capture_output=True, text=True, check=True)
+        lines = result.stdout.splitlines()
+        for line in lines:
+            if line.startswith(f'{pkgname} '):
+                parts = line.split()
+                info['installed'] = True
+                info['version'] = parts[1]
+                info['origin'] = parts[-1]  # channel name, e.g. 'conda-forge'
+                break
+    except Exception:
+        pass
+    return info
+
 def perform_install():
     """ Initiate all the required actions in the script. """
+
     process_command_line()
     initialize()
 
@@ -1340,6 +1364,28 @@ def perform_install():
     finish_setup()
 
     announce('Beginning installation')
+
+    # if using conda, we want numpy and scipy to be installed from conda-forge
+    if allow_install_with_conda():
+        numpy_info = get_package_info('numpy')
+        if numpy_info['installed'] is False or numpy_info['origin'] != 'conda-forge':
+            numpy_version = numpy_info['version']
+            if numpy_version is not None:
+                print(f"{yellow('NOTE:')} NumPy {numpy_version} is not installed from conda-forge, reinstalling it now.")
+                install_conda_pkg(f'numpy', version=numpy_version)
+            else:
+                print(f"{yellow('NOTE:')} NumPy is not installed from conda-forge, installing it now.")
+                install_conda_pkg('numpy')
+
+        scipy_info = get_package_info('scipy')
+        if scipy_info['installed'] is False or scipy_info['origin'] != 'conda-forge':
+            scipy_version = scipy_info['version']
+            if scipy_version is not None:
+                print(f"{yellow('NOTE:')} Scipy {scipy_version} is not installed from conda-forge, reinstalling it now.")
+                install_conda_pkg(f'scipy', version=scipy_version)
+            else:
+                print(f"{yellow('NOTE:')} Scipy is not installed from conda-forge, installing it now.")
+                install_conda_pkg('scipy')
 
     if opts['linear_solver'] == 'mumps':
         install_with_mumps()
