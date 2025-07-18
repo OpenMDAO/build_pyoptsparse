@@ -1372,7 +1372,7 @@ def perform_install():
             numpy_version = numpy_info['version']
             if numpy_version is not None:
                 print(f"{yellow('NOTE:')} NumPy {numpy_version} is not installed from conda-forge, reinstalling it now.")
-                install_conda_pkg(f'numpy', version=numpy_version)
+                install_conda_pkg('numpy', version=numpy_version)
             else:
                 print(f"{yellow('NOTE:')} NumPy is not installed from conda-forge, installing it now.")
                 install_conda_pkg('numpy')
@@ -1382,7 +1382,7 @@ def perform_install():
             scipy_version = scipy_info['version']
             if scipy_version is not None:
                 print(f"{yellow('NOTE:')} Scipy {scipy_version} is not installed from conda-forge, reinstalling it now.")
-                install_conda_pkg(f'scipy', version=scipy_version)
+                install_conda_pkg('scipy', version=scipy_version)
             else:
                 print(f"{yellow('NOTE:')} Scipy is not installed from conda-forge, installing it now.")
                 install_conda_pkg('scipy')
