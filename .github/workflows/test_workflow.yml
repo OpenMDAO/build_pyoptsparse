@@ -27,8 +27,7 @@ on:
           - 'Ubuntu Default'
           - 'Ubuntu Default, no MPI'
           - 'Ubuntu Default, Numpy 2.x'
-          - 'MacOS Default (Intel)'
-          - 'MacOS Default (ARM), NumPy 2.x'
+          - 'MacOS Default, NumPy 2.x'
           - 'Ubuntu Latest'
           - 'Ubuntu Default, no SciPy'
           - 'MacOS Default, SciPy from PyPI'
@@ -88,19 +87,8 @@ jobs:
             # PAROPT: true
             SNOPT: 7.7
 
-          # test default pyoptsparse on MacOS Legacy (Intel), NumPy 1.x
-          - NAME: MacOS Default (Intel)
-            OS: macos-13
-            PY: '3.11'
-            NUMPY: '1.26'
-            SCIPY: '1.13'
-            MPI: true
-            PYOPTSPARSE: 'default'
-            # PAROPT: true
-            SNOPT: 7.7
-
           # test default pyoptsparse on MacOS latest (ARM), NumPy 2.x
-          - NAME: MacOS Default (ARM), NumPy 2.x
+          - NAME: MacOS Default, NumPy 2.x
             OS: macos-latest
             PY: '3.12'
             NUMPY: '1.26'
@@ -164,7 +152,7 @@ jobs:
 
           # test default pyoptsparse on MacOS without MPI with forced build
           - NAME: MacOS Default, no MPI, forced build
-            OS: macos-13
+            OS: macos-latest
             PY: '3.11'
             NUMPY: '1.26'
             SCIPY: '1.13'
