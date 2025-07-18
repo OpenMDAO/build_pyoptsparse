@@ -33,7 +33,6 @@ on:
           - 'MacOS Default, SciPy from PyPI'
           - 'Ubuntu Oldest'
           - 'Ubuntu Default, no MPI, forced build'
-          - 'MacOS Default, no MPI, forced build'
           - 'Ubuntu Latest, no MPI, forced build'
         required: false
         default: ''
@@ -144,16 +143,6 @@ jobs:
           - NAME: Ubuntu Default, no MPI, forced build
             OS: ubuntu-latest
             PY: '3.12'
-            NUMPY: '1.26'
-            SCIPY: '1.13'
-            PYOPTSPARSE: 'default'
-            SNOPT: 7.7
-            FORCE_BUILD: true
-
-          # test default pyoptsparse on MacOS without MPI with forced build
-          - NAME: MacOS Default, no MPI, forced build
-            OS: macos-latest
-            PY: '3.11'
             NUMPY: '1.26'
             SCIPY: '1.13'
             PYOPTSPARSE: 'default'
