@@ -159,7 +159,6 @@ jobs:
             PYOPTSPARSE: 'default'
             SNOPT: 7.7
             FORCE_BUILD: true
-            XCODE: '14.2'
 
           # test latest pyoptsparse without MPI with forced build
           - NAME: Ubuntu Latest, no MPI, forced build
