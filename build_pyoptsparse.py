@@ -1377,7 +1377,7 @@ def perform_install():
     announce('Beginning installation')
 
     # if using conda, we want numpy and scipy to be installed from conda-forge
-    if allow_install_with_conda() and opts['force_build'] is False:
+    if allow_install_with_conda():
         numpy_info = get_package_info('numpy')
         if numpy_info['installed'] is False or numpy_info['origin'] != 'conda-forge':
             numpy_version = numpy_info['version']
