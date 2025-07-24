@@ -27,12 +27,12 @@ on:
           - 'Ubuntu Default'
           - 'Ubuntu Default, no MPI'
           - 'Ubuntu Default, Numpy 2.x'
-          - 'MacOS Default (Intel)'
-          - 'MacOS Default (ARM), NumPy 2.x'
+          - 'MacOS Default, NumPy 2.x'
           - 'Ubuntu Latest'
+          - 'Ubuntu Default, no SciPy'
+          - 'MacOS Default, SciPy from PyPI'
           - 'Ubuntu Oldest'
           - 'Ubuntu Default, no MPI, forced build'
-          - 'MacOS Default, no MPI, forced build'
           - 'Ubuntu Latest, no MPI, forced build'
         required: false
         default: ''
@@ -86,19 +86,8 @@ jobs:
             # PAROPT: true
             SNOPT: 7.7
 
-          # test default pyoptsparse on MacOS Legacy (Intel), NumPy 1.x
-          - NAME: MacOS Default (Intel)
-            OS: macos-13
-            PY: '3.11'
-            NUMPY: '1.26'
-            SCIPY: '1.13'
-            MPI: true
-            PYOPTSPARSE: 'default'
-            # PAROPT: true
-            SNOPT: 7.7
-
           # test default pyoptsparse on MacOS latest (ARM), NumPy 2.x
-          - NAME: MacOS Default (ARM), NumPy 2.x
+          - NAME: MacOS Default, NumPy 2.x
             OS: macos-latest
             PY: '3.12'
             NUMPY: '1.26'
@@ -112,9 +101,31 @@ jobs:
             OS: ubuntu-latest
             PY: 3.13
             NUMPY: 2.2
-            SCIPY: 1.15
+            SCIPY: 1.16
             MPI: true
             PYOPTSPARSE: 'latest'
+            # PAROPT: true
+            SNOPT: 7.7
+
+          # test default release of pyoptsparse, NumPy 2.x, no scipy
+          - NAME: Ubuntu Default, no SciPy
+            OS: ubuntu-latest
+            PY: 3.13
+            NUMPY: 2.2
+            MPI: true
+            PYOPTSPARSE: 'default'
+            # PAROPT: true
+            SNOPT: 7.7
+
+          # test default release of pyoptsparse, NumPy 2.x, scipy from pypi
+          - NAME: MacOS Default, SciPy from PyPI
+            OS: macos-latest
+            PY: '3.12'
+            NUMPY: '1.26'
+            SCIPY: '1.13'
+            SCIPY_FROM_PYPI: true
+            MPI: true
+            PYOPTSPARSE: 'default'
             # PAROPT: true
             SNOPT: 7.7
 
@@ -137,17 +148,6 @@ jobs:
             PYOPTSPARSE: 'default'
             SNOPT: 7.7
             FORCE_BUILD: true
-
-          # test default pyoptsparse on MacOS without MPI with forced build
-          - NAME: MacOS Default, no MPI, forced build
-            OS: macos-13
-            PY: '3.11'
-            NUMPY: '1.26'
-            SCIPY: '1.13'
-            PYOPTSPARSE: 'default'
-            SNOPT: 7.7
-            FORCE_BUILD: true
-            XCODE: '14.2'
 
           # test latest pyoptsparse without MPI with forced build
           - NAME: Ubuntu Latest, no MPI, forced build
@@ -207,7 +207,33 @@ jobs:
 
       - name: Install
         run: |
-          conda install numpy=${{ matrix.NUMPY }} scipy=${{ matrix.SCIPY }} -q -y
+          if [[ "${{ matrix.NUMPY}}" ]]; then
+            if [[ "${{ matrix.SCIPY_FROM_PYPI }}" ]]; then
+              echo "============================================================="
+              echo "Install NumPy from PyPI"
+              echo "============================================================="
+              python -m pip install numpy==${{ matrix.NUMPY }}
+            else
+              echo "============================================================="
+              echo "Install NumPy from conda-forge"
+              echo "============================================================="
+              conda install numpy=${{ matrix.NUMPY }} -c conda-forge -q -y
+            fi
+          fi
+
+          if [[ "${{ matrix.SCIPY}}" ]]; then
+            if [[ "${{ matrix.SCIPY_FROM_PYPI }}" ]]; then
+              echo "============================================================="
+              echo "Install SciPy from PyPI"
+              echo "============================================================="
+              python -m pip install scipy==${{ matrix.SCIPY }}
+            else
+              echo "============================================================="
+              echo "Install SciPy from conda-forge"
+              echo "============================================================="
+              conda install scipy=${{ matrix.SCIPY }} -c conda-forge -q -y
+            fi
+          fi
 
           conda install cython swig compilers cmake meson liblapack openblas -q -y
 
@@ -246,8 +272,10 @@ jobs:
           python -c "import numpy; assert str(numpy.__version__).startswith(str(${{ matrix.NUMPY }})), \
                     f'Numpy version {numpy.__version__} is not the requested version (${{ matrix.NUMPY }})'"
 
-          python -c "import scipy; assert str(scipy.__version__).startswith(str(${{ matrix.SCIPY }})), \
-                    f'Scipy version {scipy.__version__} is not the requested version (${{ matrix.SCIPY }})'"
+          if [[ "${{ matrix.SCIPY}}" ]]; then
+            python -c "import scipy; assert str(scipy.__version__).startswith(str(${{ matrix.SCIPY }})), \
+                      f'Scipy version {scipy.__version__} is not the requested version (${{ matrix.SCIPY }})'"
+          fi
 
       - name: Build pyOptSparse
         run: |

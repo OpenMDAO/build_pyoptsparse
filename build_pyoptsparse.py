@@ -9,7 +9,7 @@ import subprocess
 import tarfile
 from pathlib import Path, PurePath
 import tempfile
-from colors import *
+from colors import yellow, red, green, cyan, color
 from shutil import which
 from packaging.version import parse
 import numpy
@@ -369,7 +369,8 @@ def subst_env_for_path(path:str)->str:
         The possibly updated path.
     """
 
-    if opts['verbose'] is True: return path
+    if opts['verbose'] is True:
+        return path
 
     for testvar in ['TMPDIR', 'TMP_DIR', 'TEMP_DIR', 'CONDA_PREFIX', 'VIRTUAL_ENV']:
         if testvar in os.environ and re.match(os.environ[testvar], path) is not None:
@@ -500,7 +501,7 @@ def pip_install(pip_install_args, pkg_desc='packages'):
     run_cmd(cmd_list)
     note_ok()
 
-def install_conda_pkg(pkg_name:str):
+def install_conda_pkg(pkg_name:str, version:str=None):
     """
     Shorthand for performing a 'conda install' operation for a single package.
 
@@ -510,6 +511,8 @@ def install_conda_pkg(pkg_name:str):
         The name of the package to install.
     """
     note(f'Installing {pkg_name.upper()} with conda')
+    if version is not None:
+        pkg_name += f'={version}'
     install_args = ['install', '-q', '-y', pkg_name]
     run_conda_cmd(cmd_args=install_args)
     note_ok()
@@ -707,7 +710,7 @@ def install_mumps_from_src():
     if not allow_build('mumps'):
         return
 
-    build_dir = git_clone('mumps')
+    git_clone('mumps')
     run_cmd(['./get.Mumps'])
 
     cnf_cmd_list = get_common_solver_config_cmd()
@@ -723,7 +726,7 @@ def install_paropt_from_src():
     """
     Git clone the PAROPT repo, build the library, and install it and the include files.
     """
-    build_dir = git_clone('paropt')
+    git_clone('paropt')
 
     # Use build defaults as per ParOpt instructions:
     Path('Makefile.in.info').rename('Makefile.in')
@@ -763,13 +766,16 @@ def install_ipopt_from_src(config_opts:list=None):
     if not allow_build('ipopt') or opts['include_ipopt'] is False:
         return
 
-    build_dir = git_clone('ipopt')
+    git_clone('ipopt')
     cnf_cmd_list = ['./configure', f'--prefix={opts["prefix"]}', '--disable-java']
 
     # Don't accidentally use PARDISO if it wasn't selected:
-    if opts['linear_solver'] != 'pardiso': cnf_cmd_list.append('--disable-pardisomkl')
+    if opts['linear_solver'] != 'pardiso':
+        cnf_cmd_list.append('--disable-pardisomkl')
 
-    if config_opts is not None: cnf_cmd_list.extend(config_opts)
+    if config_opts is not None:
+        cnf_cmd_list.extend(config_opts)
+
     note("Running configure")
     run_cmd(cmd_list=cnf_cmd_list)
     note_ok()
@@ -841,7 +847,7 @@ def install_hsl_from_src():
     if not allow_build('hsl'):
         return
 
-    build_dir = git_clone('hsl')
+    git_clone('hsl')
 
     # Extract the HSL tar file and rename the folder to 'coinhsl'
     # First, determine the name of the top-level folder:
@@ -982,7 +988,7 @@ def uninstall_built_item(build_key:str):
 
             try:
                 inc_dir.rmdir()
-            except:
+            except Exception:
                 pass
 
             note_ok()
@@ -1021,10 +1027,13 @@ def remove_conda_scripts():
     if conda_is_active() and opts['ignore_conda'] is False:
         note("Removing conda activate/deactivate scripts")
         act_path = Path(sys_info['conda_activate_dir']) / sys_info['conda_env_script']
-        if act_path.is_file(): act_path.unlink()
+        if act_path.is_file():
+            act_path.unlink()
 
         deact_path = Path(sys_info['conda_deactivate_dir']) / sys_info['conda_env_script']
-        if deact_path.is_file(): deact_path.unlink()
+        if deact_path.is_file():
+            deact_path.unlink()
+
         note_ok()
 
 def uninstall_built():
@@ -1034,7 +1043,8 @@ def uninstall_built():
     for build_key in ['ipopt', 'hsl', 'mumps', 'metis']:
         uninstall_built_item(build_key)
 
-    if opts['ignore_conda'] is False: remove_conda_scripts()
+    if opts['ignore_conda'] is False:
+        remove_conda_scripts()
 
 def uninstall_conda_pkgs():
     """ Attempt to remove packages previously installed by conda. """
@@ -1105,7 +1115,7 @@ def check_compiler_sanity():
     note_ok()
 
     if opts['include_paropt']:
-        note(f'Testing mpicxx')
+        note('Testing mpicxx')
         run_cmd(cmd_list=['mpicxx', '-o', 'hello_cxx_mpi', 'hello.cc'])
         run_cmd(cmd_list=['./hello_cxx_mpi'])
         note_ok()
@@ -1232,7 +1242,8 @@ def finish_setup():
 
     # Set an option with the parsed pyOptSparse version
     pos_ver_str = build_info['pyoptsparse']['branch']
-    if pos_ver_str[:1] == 'v': pos_ver_str = pos_ver_str[1:] # Drop the initial v
+    if pos_ver_str[:1] == 'v':
+        pos_ver_str = pos_ver_str[1:] # Drop the initial v
     opts['pyoptsparse_version'] = parse(pos_ver_str)
 
     # Change snopt_dir to an absolute path
@@ -1325,21 +1336,67 @@ Otherwise, you may encounter errors such as:
     announce('SUCCESS!')
     exit(0)
 
+
+def get_package_info(pkgname:str) -> dict:
+    info = {
+        'installed': False,
+        'version': None,
+        'origin': None  # 'conda-forge', 'pypi', or 'unknown'
+    }
+    try:
+        result = subprocess.run(['conda', 'list', pkgname], capture_output=True, text=True, check=True)
+        lines = result.stdout.splitlines()
+        for line in lines:
+            if line.startswith(f'{pkgname} '):
+                parts = line.split()
+                info['installed'] = True
+                info['version'] = parts[1]
+                info['origin'] = parts[-1]  # channel name, e.g. 'conda-forge'
+                break
+    except Exception:
+        pass
+    return info
+
+
 def perform_install():
     """ Initiate all the required actions in the script. """
+
     process_command_line()
     initialize()
 
     if opts['uninstall']:
         announce('Uninstalling pyOptSparse and related packages')
         print(f'{yellow("NOTE:")} Some items may be listed even if not installed.')
-        if opts['ignore_conda'] is False: uninstall_conda_pkgs()
+        if opts['ignore_conda'] is False:
+            uninstall_conda_pkgs()
         uninstall_built()
         exit(0)
 
     finish_setup()
 
     announce('Beginning installation')
+
+    # if using conda, we want numpy and scipy to be installed from conda-forge
+    if allow_install_with_conda():
+        numpy_info = get_package_info('numpy')
+        if numpy_info['installed'] is False or numpy_info['origin'] != 'conda-forge':
+            numpy_version = numpy_info['version']
+            if numpy_version is not None:
+                print(f"{yellow('NOTE:')} NumPy {numpy_version} is not installed from conda-forge, reinstalling it now.")
+                install_conda_pkg('numpy', version=numpy_version)
+            else:
+                print(f"{yellow('NOTE:')} NumPy is not installed from conda-forge, installing it now.")
+                install_conda_pkg('numpy')
+
+        scipy_info = get_package_info('scipy')
+        if scipy_info['installed'] is False or scipy_info['origin'] != 'conda-forge':
+            scipy_version = scipy_info['version']
+            if scipy_version is not None:
+                print(f"{yellow('NOTE:')} Scipy {scipy_version} is not installed from conda-forge, reinstalling it now.")
+                install_conda_pkg('scipy', version=scipy_version)
+            else:
+                print(f"{yellow('NOTE:')} Scipy is not installed from conda-forge, installing it now.")
+                install_conda_pkg('scipy')
 
     if opts['linear_solver'] == 'mumps':
         install_with_mumps()
