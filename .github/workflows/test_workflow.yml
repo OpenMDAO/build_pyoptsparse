@@ -235,7 +235,7 @@ jobs:
             fi
           fi
 
-          conda install cython swig compilers=1.10 cmake meson liblapack openblas -q -y
+          conda install cython swig compilers=1.10 gcc=13.3 cmake meson liblapack openblas -q -y
 
           if [[ "${{ matrix.XCODE }}" ]]; then
             sudo xcode-select -s "/Applications/Xcode_${{ matrix.XCODE }}.app"
