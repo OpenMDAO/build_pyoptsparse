@@ -148,6 +148,7 @@ jobs:
             PYOPTSPARSE: 'default'
             SNOPT: 7.7
             FORCE_BUILD: true
+            GCC: 'gcc=13.3'
 
           # test latest pyoptsparse without MPI with forced build
           - NAME: Ubuntu Latest, no MPI, forced build
@@ -158,6 +159,7 @@ jobs:
             PYOPTSPARSE: 'latest'
             SNOPT: 7.7
             FORCE_BUILD: true
+            GCC: 'gcc=13.3'
 
     runs-on: ${{ matrix.OS }}
 
@@ -235,7 +237,7 @@ jobs:
             fi
           fi
 
-          conda install cython swig compilers=1.10 gcc=13.3 cmake meson liblapack openblas -q -y
+          conda install cython swig compilers=1.10 ${{ matrix.GCC }} cmake meson liblapack openblas -q -y
 
           if [[ "${{ matrix.XCODE }}" ]]; then
             sudo xcode-select -s "/Applications/Xcode_${{ matrix.XCODE }}.app"
