@@ -17,11 +17,11 @@ Requirements:
     - A Fortran compiler (gfortran, ifort, etc.)
 
 Usage:
-    python -m build_pyoptsparse.build_snopt_module /path/to/snopt/src [options]
+    python -m build_pyoptsparse.snopt_module /path/to/snopt/src [options]
 
 Example:
-    python -m build_pyoptsparse.build_snopt_module ~/Downloads/snopt-7.7/src
-    python -m build_pyoptsparse.build_snopt_module ~/Downloads/snopt-7.7/src --output ~/my-snopt
+    python -m build_pyoptsparse.snopt_module ~/Downloads/snopt-7.7/src
+    python -m build_pyoptsparse.snopt_module ~/Downloads/snopt-7.7/src --output ~/my-snopt
 """
 
 import argparse
@@ -32,6 +32,8 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+from .build_pyoptsparse import announce
 
 
 # Files to exclude from SNOPT source
@@ -415,9 +417,9 @@ def print_instructions(install_path, is_default_location):
     """Print instructions for using the built module."""
     install_dir = Path(install_path).parent
 
-    print("\n" + "="*70)
-    print("SUCCESS! SNOPT module built and installed")
-    print("="*70)
+    print("\n" + "="*80)
+    announce("SUCCESS! SNOPT module built and installed")
+    print("="*80)
 
     if is_default_location:
         print("\nSNOPT has been installed to the pyoptsparse package directory.")
@@ -460,17 +462,17 @@ def main():
 Examples:
   # Build from source and install to default location (pyoptsparse package directory)
   # No environment variable needed!
-  python -m build_pyoptsparse.build_snopt_module ~/Downloads/snopt-7.7/src
+  python -m build_pyoptsparse.snopt_module ~/Downloads/snopt-7.7/src
 
   # Link against precompiled library (Linux/macOS/Windows)
-  python -m build_pyoptsparse.build_snopt_module --snopt-lib /path/to/libsnopt7.so
-  python -m build_pyoptsparse.build_snopt_module --snopt-lib C:\path\to\snopt7.dll
+  python -m build_pyoptsparse.snopt_module --snopt-lib /path/to/libsnopt7.so
+  python -m build_pyoptsparse.snopt_module --snopt-lib C:\path\to\snopt7.dll
 
   # Build from source and install to custom location (requires setting PYOPTSPARSE_IMPORT_SNOPT_FROM)
-  python -m build_pyoptsparse.build_snopt_module ~/Downloads/snopt-7.7/src --output ~/my-snopt
+  python -m build_pyoptsparse.snopt_module ~/Downloads/snopt-7.7/src --output ~/my-snopt
 
   # Keep build directory for debugging
-  python -m build_pyoptsparse.build_snopt_module ~/Downloads/snopt-7.7/src --keep-build
+  python -m build_pyoptsparse.snopt_module ~/Downloads/snopt-7.7/src --keep-build
         """
     )
 
