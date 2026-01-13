@@ -114,6 +114,7 @@ def download_file_from_github(url, dest_path):
 
 def copy_pyoptsparse_files(build_dir):
     """Copy necessary files from pyoptsparse installation to build directory."""
+    this_dir = Path(__file__).parent
     pyopt_dir = find_pyoptsparse()
     snopt_dir = pyopt_dir / "pySNOPT"
     source_dir = snopt_dir / "source"
@@ -129,7 +130,6 @@ def copy_pyoptsparse_files(build_dir):
         "f2py/snopt.pyf": "https://raw.githubusercontent.com/mdolab/pyoptsparse/main/pyoptsparse/pySNOPT/source/f2py/snopt.pyf",
         "openunit.f": "https://raw.githubusercontent.com/mdolab/pyoptsparse/main/pyoptsparse/pySNOPT/source/openunit.f",
         "closeunit.f": "https://raw.githubusercontent.com/mdolab/pyoptsparse/main/pyoptsparse/pySNOPT/source/closeunit.f",
-        "grab-all-fortran-files.py": "https://raw.githubusercontent.com/mdolab/pyoptsparse/main/pyoptsparse/pySNOPT/source/grab-all-fortran-files.py",
     }
 
     # Check if files exist in installation or need to be downloaded
@@ -147,8 +147,6 @@ def copy_pyoptsparse_files(build_dir):
                 print("  https://github.com/mdolab/pyoptsparse/tree/main/pyoptsparse/pySNOPT/source")
                 sys.exit(1)
 
-        # Make grab script executable
-        (build_path / "source" / "grab-all-fortran-files.py").chmod(0o755)
         print("\nSuccessfully downloaded all required files")
 
     else:
@@ -168,16 +166,17 @@ def copy_pyoptsparse_files(build_dir):
             if helper_path.exists():
                 shutil.copy2(helper_path, build_path / "source" / helper_file)
 
-        # Copy grab-all-fortran-files.py script
-        grab_script = source_dir / "grab-all-fortran-files.py"
-        if not grab_script.exists():
-            print(f"Error: Cannot find {grab_script}")
-            sys.exit(1)
-        shutil.copy2(grab_script, build_path / "source" / "grab-all-fortran-files.py")
-        # Make it executable
-        (build_path / "source" / "grab-all-fortran-files.py").chmod(0o755)
-
         print("Copied pyoptsparse build files")
+
+    # Copy grab-all-fortran-files.py script
+    grab_script = this_dir / "grab-all-fortran-files.py"
+    if not grab_script.exists():
+        print(f"Error: Cannot find {grab_script}")
+        sys.exit(1)
+    shutil.copy2(grab_script, build_path / "source" / "grab-all-fortran-files.py")
+    # Make it executable
+    (build_path / "source" / "grab-all-fortran-files.py").chmod(0o755)
+    print("Copied pyoptsparse build assist script")
 
 
 def create_meson_build_file(build_dir, snopt_lib_path=None):
