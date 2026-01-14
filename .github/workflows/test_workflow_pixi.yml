@@ -76,7 +76,6 @@ jobs:
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.8.1
         with:
-          pixi-version: v0.34.0
           cache: false
           environments: ${{ matrix.pixi-environment }}
 
