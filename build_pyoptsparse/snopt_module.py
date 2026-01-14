@@ -132,41 +132,35 @@ def copy_pyoptsparse_files(build_dir):
         "closeunit.f": "https://raw.githubusercontent.com/mdolab/pyoptsparse/main/pyoptsparse/pySNOPT/source/closeunit.f",
     }
 
-    # Check if files exist in installation or need to be downloaded
-    if not source_dir.exists():
-        print("SNOPT build files not found in installation (typical for conda installs)")
-        print("Downloading required files from GitHub...\n")
+    for file_path, url in files_needed.items():
+        dest = build_path / "source" / file_path
+        dest.parent.mkdir(parents=True, exist_ok=True)
 
-        for file_path, url in files_needed.items():
-            dest = build_path / "source" / file_path
-            dest.parent.mkdir(parents=True, exist_ok=True)
-
+        if not dest.exists():
             if not download_file_from_github(url, dest):
                 print(f"\nError: Failed to download {file_path}")
                 print("Please check your internet connection or download manually from:")
                 print("  https://github.com/mdolab/pyoptsparse/tree/main/pyoptsparse/pySNOPT/source")
                 sys.exit(1)
 
-        print("\nSuccessfully downloaded all required files")
+    # else:
+    #     # Copy files from installation
+    #     print("Copying SNOPT build files from installation...")
 
-    else:
-        # Copy files from installation
-        print("Copying SNOPT build files from installation...")
+    #     # Copy f2py interface file
+    #     f2py_file = source_dir / "f2py" / "snopt.pyf"
+    #     if not f2py_file.exists():
+    #         print(f"Error: Cannot find {f2py_file}")
+    #         sys.exit(1)
+    #     shutil.copy2(f2py_file, source_build_dir / "snopt.pyf")
 
-        # Copy f2py interface file
-        f2py_file = source_dir / "f2py" / "snopt.pyf"
-        if not f2py_file.exists():
-            print(f"Error: Cannot find {f2py_file}")
-            sys.exit(1)
-        shutil.copy2(f2py_file, source_build_dir / "snopt.pyf")
+    #     # Copy helper Fortran files to source directory
+    #     for helper_file in ["openunit.f", "closeunit.f"]:
+    #         helper_path = source_dir / helper_file
+    #         if helper_path.exists():
+    #             shutil.copy2(helper_path, build_path / "source" / helper_file)
 
-        # Copy helper Fortran files to source directory
-        for helper_file in ["openunit.f", "closeunit.f"]:
-            helper_path = source_dir / helper_file
-            if helper_path.exists():
-                shutil.copy2(helper_path, build_path / "source" / helper_file)
-
-        print("Copied pyoptsparse build files")
+    #     print("Copied pyoptsparse build files")
 
     # Copy grab-all-fortran-files.py script
     grab_script = this_dir / "grab-all-fortran-files.py"

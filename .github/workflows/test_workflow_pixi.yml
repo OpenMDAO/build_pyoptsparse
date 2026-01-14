@@ -127,6 +127,12 @@ jobs:
           echo "============================================================="
           pixi run -e ${{ matrix.pixi-environment }} python -c "from pyoptsparse import SNOPT; print('SNOPT loaded successfully!')"
 
+          echo "============================================================="
+          echo "Test SNOPT optimization"
+          echo "============================================================="
+          export SNOPT_SRC_PATH="SNOPT/src"
+          pixi run -e ${{ matrix.pixi-environment }} python -m unittest build_pyoptsparse/test/test_snopt_module.py
+
       # Enable tmate debugging of manually-triggered workflows if the input option was provided
       - name: Setup tmate session
         if: github.event_name == 'workflow_dispatch' && inputs.debug_enabled

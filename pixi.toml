@@ -12,6 +12,7 @@ meson = "*"
 ninja = "*"
 pip = ">=25.3,<26"
 pyoptsparse = "*"
+compilers = ">=1.11.0,<2"
 
 [feature.py311.dependencies]
 python = "3.11.*"
