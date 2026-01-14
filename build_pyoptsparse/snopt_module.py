@@ -167,16 +167,6 @@ def copy_pyoptsparse_files(build_dir):
 
     #     print("Copied pyoptsparse build files")
 
-    # Copy grab-all-fortran-files.py script
-    grab_script = this_dir / "grab-all-fortran-files.py"
-    if not grab_script.exists():
-        print(f"Error: Cannot find {grab_script}")
-        sys.exit(1)
-    shutil.copy2(grab_script, build_path / "source" / "grab-all-fortran-files.py")
-    # Make it executable
-    (build_path / "source" / "grab-all-fortran-files.py").chmod(0o755)
-    print("Copied pyoptsparse build assist script")
-
 
 def create_meson_build_file(build_dir: Path | str,
                             snopt_src_files: list[str] | None=None,

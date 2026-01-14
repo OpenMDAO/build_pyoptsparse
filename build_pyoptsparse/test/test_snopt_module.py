@@ -11,13 +11,19 @@ class TestSNOPTModule(unittest.TestCase):
         import sys
         from pathlib import Path
 
-        # Check if SNOPT module is already available
-        try:
-            from pyoptsparse import SNOPT
-            print("SNOPT module already installed, skipping build")
-            return
-        except ImportError:
-            print("SNOPT module not found, building...")
+        # Check if SNOPT module is already available (unless forced to rebuild)
+        force_rebuild = os.environ.get('FORCE_SNOPT_REBUILD', 'false').lower() in ('true', '1', 'yes')
+
+        if not force_rebuild:
+            try:
+                # Try to instantiate SNOPT optimizer to check if the module is really available
+                from pyoptsparse import OPT
+                opt = OPT('SNOPT')
+                print("SNOPT module already installed, skipping build (set FORCE_SNOPT_REBUILD=1 to override)")
+                return
+            except Exception:
+                # If SNOPT can't be loaded, build it
+                print("SNOPT module not found, building...")
 
         try:
             src_path = Path(os.environ['SNOPT_SRC_PATH'])
