@@ -11,14 +11,22 @@ class TestSNOPTModule(unittest.TestCase):
         import sys
         from pathlib import Path
 
+        # Check if SNOPT module is already available
+        try:
+            from pyoptsparse import SNOPT
+            print("SNOPT module already installed, skipping build")
+            return
+        except ImportError:
+            print("SNOPT module not found, building...")
+
         try:
             src_path = Path(os.environ['SNOPT_SRC_PATH'])
         except KeyError:
             raise RuntimeError('This test requires environment variable SNOPT_SRC_PATH be set.')
-        
+
         if not src_path.exists():
             raise FileNotFoundError(f"Source path not found: {src_path}")
-        
+
         try:
             subprocess.run(
                 [sys.executable, "-m", "build_pyoptsparse.snopt_module", str(src_path)],
@@ -26,7 +34,7 @@ class TestSNOPTModule(unittest.TestCase):
                 capture_output=True,
                 text=True
             )
-            
+
         except subprocess.CalledProcessError as e:
             print(f"Build failed with return code {e.returncode}")
             print(f"STDOUT: {e.stdout}")

@@ -624,10 +624,14 @@ Examples:
             except Exception as e:
                 # On some systems (especially Linux), cleanup can fail due to filesystem timing
                 # This is not critical, so we just warn and continue
-                print(f"\nWarning: Failed to clean up temporary directory: {e}", file=sys.stderr)
+                try:
+                    print(f"\nWarning: Failed to clean up temporary directory: {e}", file=sys.stderr)
+                except:
+                    pass  # If we can't print the warning, just continue
 
-    # Explicitly exit with success code
-    sys.exit(0)
+    # Return normally - Python will exit with code 0 (success) if we reach here
+    # Don't call sys.exit(0) explicitly as it can trigger cleanup handlers that may crash on Linux
+    return
 
 
 if __name__ == "__main__":
