@@ -75,7 +75,7 @@ jobs:
           echo "============================================================="
 
       - name: Create SSH key for SNOPT
-        if: secrets.SSH_PRIVATE_KEY && secrets.SNOPT_LOCATION_77
+        if: ${{ secrets.SSH_PRIVATE_KEY != '' && secrets.SNOPT_LOCATION_77 != '' }}
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
@@ -125,7 +125,7 @@ jobs:
           pixi run -e ${{ matrix.pixi-environment }} python -c "import pyoptsparse; print(f'pyoptsparse: {pyoptsparse.__version__}')"
 
       - name: Copy SNOPT source files
-        if: secrets.SSH_PRIVATE_KEY && secrets.SNOPT_LOCATION_77
+        if: ${{ secrets.SSH_PRIVATE_KEY != '' && secrets.SNOPT_LOCATION_77 != '' }}
         run: |
           echo "============================================================="
           echo "Copying SNOPT 7.7 source files via SSH"
@@ -135,7 +135,7 @@ jobs:
           ls -la SNOPT/src
 
       - name: Build SNOPT module
-        if: secrets.SSH_PRIVATE_KEY && secrets.SNOPT_LOCATION_77
+        if: ${{ secrets.SSH_PRIVATE_KEY != '' && secrets.SNOPT_LOCATION_77 != '' }}
         run: |
           echo "============================================================="
           echo "Build SNOPT module with build_pyoptsparse"
@@ -143,7 +143,7 @@ jobs:
           pixi run -e ${{ matrix.pixi-environment }} python -m build_pyoptsparse.build_snopt_module SNOPT/src
 
       - name: Test SNOPT module
-        if: secrets.SSH_PRIVATE_KEY && secrets.SNOPT_LOCATION_77
+        if: ${{ secrets.SSH_PRIVATE_KEY != '' && secrets.SNOPT_LOCATION_77 != '' }}
         run: |
           echo "============================================================="
           echo "Test that SNOPT module can be imported"
