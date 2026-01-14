@@ -117,7 +117,7 @@ jobs:
           echo "============================================================="
           echo "Build SNOPT module with build_pyoptsparse"
           echo "============================================================="
-          pixi run -e ${{ matrix.pixi-environment }} python -m build_pyoptsparse.build_snopt_module SNOPT/src
+          pixi run -e ${{ matrix.pixi-environment }} python -m build_pyoptsparse.snopt_module SNOPT/src
 
       - name: Test SNOPT module
         if: env.HAS_SNOPT_ACCESS == 'true'
@@ -146,9 +146,9 @@ jobs:
         with:
           limit-access-to-actor: true
 
-      - name: Notify slack on failure
-        uses: act10ns/slack@v2.0.0
-        with:
-          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
-          status: ${{ job.status }}
-        if: failure()
+      # - name: Notify slack on failure
+      #   uses: act10ns/slack@v2.0.0
+      #   with:
+      #     webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #     status: ${{ job.status }}
+      #   if: failure()
