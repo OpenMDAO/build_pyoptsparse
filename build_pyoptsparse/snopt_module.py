@@ -36,11 +36,6 @@ from pathlib import Path
 from .build_pyoptsparse import announce
 
 
-# Files to exclude from SNOPT source
-# Note: Only exclude sn27lu77.f (old version), not sn27lu90.f (new version)
-EXCLUDE_FILES = ["sn27lu77.f", "snopth.f"]
-
-
 def find_pyoptsparse():
     """Find the pyoptsparse installation directory."""
     import pyoptsparse
@@ -81,6 +76,15 @@ def copy_snopt_source(source_dir, dest_dir):
     source_path = Path(source_dir)
     dest_path = Path(dest_dir)
     dest_path.mkdir(parents=True, exist_ok=True)
+
+    EXCLUDE_FILES = ["snopth.f"]
+
+    f_files = list(source_path.glob("*.f"))
+
+    if "sn27lu.f" in f_files:
+        EXCLUDE_FILES.extend([ "sn27lu77.f",  "sn27lu90.f"])
+    elif "sn27lu90.f" in f_files:
+        EXCLUDE_FILES.append("sn27lu.f", "sn27lu77.f")
 
     copied_files = []
     skipped_files = []
