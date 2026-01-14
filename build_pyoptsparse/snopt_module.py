@@ -619,7 +619,15 @@ Examples:
     finally:
         # Clean up temporary directory if needed
         if temp_dir and not args.keep_build:
-            temp_dir.cleanup()
+            try:
+                temp_dir.cleanup()
+            except Exception as e:
+                # On some systems (especially Linux), cleanup can fail due to filesystem timing
+                # This is not critical, so we just warn and continue
+                print(f"\nWarning: Failed to clean up temporary directory: {e}", file=sys.stderr)
+
+    # Explicitly exit with success code
+    sys.exit(0)
 
 
 if __name__ == "__main__":
