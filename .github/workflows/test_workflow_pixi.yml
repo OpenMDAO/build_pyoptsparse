@@ -86,13 +86,6 @@ jobs:
           echo "============================================================="
           pixi run -e ${{ matrix.pixi-environment }} pip install -e .
 
-      - name: Install pyoptsparse
-        run: |
-          echo "============================================================="
-          echo "Install pyoptsparse from conda-forge"
-          echo "============================================================="
-          pixi add -e ${{ matrix.pixi-environment }} pyoptsparse
-
       - name: Display environment
         run: |
           echo "============================================================="

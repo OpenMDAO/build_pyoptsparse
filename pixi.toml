@@ -11,6 +11,7 @@ packaging = "*"
 meson = "*"
 ninja = "*"
 pip = ">=25.3,<26"
+pyoptsparse = "*"
 
 [feature.py311.dependencies]
 python = "3.11.*"
