@@ -148,9 +148,9 @@ jobs:
         with:
           limit-access-to-actor: true
 
-      # - name: Notify slack on failure
-      #   uses: act10ns/slack@v2.0.0
-      #   with:
-      #     webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
-      #     status: ${{ job.status }}
-      #   if: failure()
+      - name: Notify slack on failure
+        uses: act10ns/slack@v2.0.0
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          status: ${{ job.status }}
+        if: failure()
