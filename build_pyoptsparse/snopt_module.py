@@ -80,11 +80,12 @@ def copy_snopt_source(source_dir, dest_dir):
     EXCLUDE_FILES = ["snopth.f"]
 
     f_files = list(source_path.glob("*.f"))
+    f_file_names = [f.name for f in f_files]
 
-    if "sn27lu.f" in f_files:
-        EXCLUDE_FILES.extend([ "sn27lu77.f",  "sn27lu90.f"])
-    elif "sn27lu90.f" in f_files:
-        EXCLUDE_FILES.append("sn27lu.f", "sn27lu77.f")
+    if "sn27lu.f" in f_file_names:
+        EXCLUDE_FILES.extend(["sn27lu77.f", "sn27lu90.f"])
+    elif "sn27lu90.f" in f_file_names:
+        EXCLUDE_FILES.extend(["sn27lu.f", "sn27lu77.f"])
 
     copied_files = []
     skipped_files = []
@@ -177,13 +178,22 @@ def copy_pyoptsparse_files(build_dir):
     print("Copied pyoptsparse build assist script")
 
 
-def create_meson_build_file(build_dir, snopt_lib_path=None):
+def create_meson_build_file(build_dir: Path | str,
+                            snopt_src_files: list[str] | None=None,
+                            snopt_lib_path: Path | str | None=None):
     """Create a standalone meson.build file for SNOPT.
 
-    Args:
-        build_dir: Build directory path
-        snopt_lib_path: Optional path to precompiled libsnopt7.so/dylib. If provided,
-                       link against this library instead of compiling from source.
+    User must provide either snopt_src_files or snopt_lib_path
+
+    Parameters
+    ----------
+    build_dir: Path or str
+        Build directory path
+    snopt_src_files : list[str]
+        Optional path to snopt source files.
+    snopt_lib_path
+        Optional path to precompiled libsnopt7.so/dylib. If provided, link against this library
+        instead of compiling from source.
     """
     build_path = Path(build_dir)
 
@@ -257,7 +267,7 @@ message('Building SNOPT module linked against precompiled library: {snopt_lib_pa
 """
     else:
         # Compile from source
-        meson_content = """project(
+        meson_content = f"""project(
   'snopt-module',
   'c', 'fortran',
   meson_version: '>= 0.60',
@@ -294,8 +304,7 @@ run_command(py3,
 fortranobject_c = 'fortranobject.c'
 
 # Get list of all Fortran files
-result = run_command('source' / 'grab-all-fortran-files.py', check: true)
-snopt_source_files = result.stdout().strip().split('\\n')
+snopt_source_files = [{', '.join(snopt_src_files)}]
 
 # Generate C wrapper from f2py interface
 snopt_source = custom_target('snoptmodule.c',
@@ -567,11 +576,17 @@ Examples:
         copy_pyoptsparse_files(build_dir)
 
         # Copy SNOPT source files if building from source
-        if args.snopt_source:
-            copy_snopt_source(args.snopt_source, build_dir / "source")
+        if not args.snopt_lib:
+            snopt_src_list = copy_snopt_source(args.snopt_source, build_dir / "source") if args.snopt_source else None
+            # Prepend 'source/' to each filename since files are in source/ subdirectory
+            if snopt_src_list:
+                snopt_src_list.extend(["openunit.f", "closeunit.f"])
+                snopt_src_list = [f"'source/{f}'" for f in snopt_src_list]
+        else:
+            snopt_src_list = None
 
         # Create meson.build file
-        create_meson_build_file(build_dir, snopt_lib_path=args.snopt_lib)
+        create_meson_build_file(build_dir, snopt_lib_path=args.snopt_lib, snopt_src_files=snopt_src_list)
 
         # Build the module with meson
         if not build_with_meson(build_dir):
