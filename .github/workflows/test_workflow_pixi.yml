@@ -132,6 +132,7 @@ jobs:
           echo "============================================================="
           export SNOPT_SRC_PATH="SNOPT/src"
           echo $PWD
+          ls -la
           pixi run -e ${{ matrix.pixi-environment }} python -m unittest build_pyoptsparse/test/test_snopt_module.py
 
       # Enable tmate debugging of manually-triggered workflows if the input option was provided
