@@ -310,7 +310,7 @@ host_system = host_machine.system()
 # Set compiler-specific flags for fixed-form Fortran
 if host_system == 'windows' and (fc_id == 'intel' or fc_id == 'intel-cl' or fc_id == 'intel-llvm-cl')
   # Intel on Windows - use Windows-style flags
-  fortran_flags = ['/fixed', '/extend-source:80']
+  fortran_flags = ['/fixed', '/extend-source:80', '/names:lowercase', '/assume:underscore']
 elif fc_id == 'intel' or fc_id == 'intel-cl'
   # Intel on Linux/macOS - use Unix-style flags
   fortran_flags = ['-fixed', '-extend-source', '80']
