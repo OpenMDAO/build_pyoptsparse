@@ -161,6 +161,8 @@ jobs:
           Write-Host "Test SNOPT optimization"
           Write-Host "============================================================="
           $env:SNOPT_SRC_PATH = "SNOPT/src"
+          $env:FC = "ifx"
+          $env:CC = "cl"
           Write-Host $PWD
           Get-ChildItem
           pixi run --frozen -e ${{ matrix.pixi-environment }} python -m unittest build_pyoptsparse/test/test_snopt_module.py
