@@ -150,40 +150,22 @@ jobs:
 
       - name: Test SNOPT module (Windows)
         if: env.HAS_SNOPT_ACCESS == 'true' && runner.os == 'Windows'
-        shell: pwsh
+        shell: cmd
         env:
           FC: ifx
           CC: cl
           SNOPT_SRC_PATH: SNOPT/src
         run: |
-          # Add Intel compiler libraries to PATH
-          $env:PATH = "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\bin;$env:PATH"
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
 
-          # Check where SNOPT module was installed
-          Write-Host "Checking for SNOPT module installation..."
-          $pyoptPath = pixi run --frozen -e ${{ matrix.pixi-environment }} python -c "import pyoptsparse; print(pyoptsparse.__file__)"
-          Write-Host "pyoptsparse location: $pyoptPath"
-          
-          $snoptDir = Split-Path $pyoptPath | Join-Path -ChildPath "pySNOPT"
-          Write-Host "Expected SNOPT location: $snoptDir"
-          
-          if (Test-Path $snoptDir) {
-            Write-Host "Contents of pySNOPT directory:"
-            Get-ChildItem $snoptDir
-          } else {
-            Write-Host "pySNOPT directory not found!"
-          }
-
-          Write-Host "============================================================="
-          Write-Host "Test that SNOPT module can be imported"
-          Write-Host "============================================================="
+          echo =============================================================
+          echo Test that SNOPT module can be imported
+          echo =============================================================
           pixi run --frozen -e ${{ matrix.pixi-environment }} python -c "from pyoptsparse import SNOPT; print('SNOPT loaded successfully!')"
 
-          Write-Host "============================================================="
-          Write-Host "Test SNOPT optimization"
-          Write-Host "============================================================="
-          Write-Host $PWD
-          Get-ChildItem
+          echo =============================================================
+          echo Test SNOPT optimization
+          echo =============================================================
           pixi run --frozen -e ${{ matrix.pixi-environment }} python -m unittest build_pyoptsparse/test/test_snopt_module.py
 
       # Enable tmate debugging of manually-triggered workflows if the input option was provided
