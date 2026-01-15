@@ -25,6 +25,11 @@ on:
         required: false
         default: false
 
+concurrency:
+  # Cancel any existing CI runs if we push to this branch
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 run-name:  ${{ inputs.run_name }}
 
 jobs:
@@ -40,6 +45,11 @@ jobs:
         pixi-environment: ['default', 'py311', 'py312', 'py314']
 
     runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        # Note this isn't passed to the composite action
+        shell: bash -l {0}
 
     name: ${{ matrix.os }} / Python ${{ matrix.pixi-environment }}
 
