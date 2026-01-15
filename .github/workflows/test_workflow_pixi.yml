@@ -152,6 +152,10 @@ jobs:
         if: env.HAS_SNOPT_ACCESS == 'true' && runner.os == 'Windows'
         shell: pwsh
         run: |
+          $env:SNOPT_SRC_PATH = "SNOPT/src"
+          $env:FC = "ifx"
+          $env:CC = "cl"
+          
           Write-Host "============================================================="
           Write-Host "Test that SNOPT module can be imported"
           Write-Host "============================================================="
@@ -160,9 +164,6 @@ jobs:
           Write-Host "============================================================="
           Write-Host "Test SNOPT optimization"
           Write-Host "============================================================="
-          $env:SNOPT_SRC_PATH = "SNOPT/src"
-          $env:FC = "ifx"
-          $env:CC = "cl"
           Write-Host $PWD
           Get-ChildItem
           pixi run --frozen -e ${{ matrix.pixi-environment }} python -m unittest build_pyoptsparse/test/test_snopt_module.py
