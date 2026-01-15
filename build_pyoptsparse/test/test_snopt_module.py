@@ -101,8 +101,10 @@ class TestSNOPTModule(unittest.TestCase):
         # Solution
         sol = opt(optProb, sens=sens)
 
-        self.assertEqual(sol.optInform.value, 1)
+        print(sol)
 
+        self.assertEqual(sol.optInform.value, 1)
+        assert_almost_equal(sol.fStar, 17.014, decimal=2)
 
 if __name__ == '__main__':
     unittest.main()
