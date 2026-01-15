@@ -307,12 +307,16 @@ fc = meson.get_compiler('fortran')
 fc_id = fc.get_id()
 
 # Set compiler-specific flags for fixed-form Fortran
-if fc_id == 'intel' or fc_id == 'intel-cl'
+if fc_id == 'intel-cl'
+  # Intel on Windows - use Windows-style flags
+  fortran_flags = ['/fixed', '/extend-source:80']
+elif fc_id == 'intel'
+  # Intel on Linux/macOS - use Unix-style flags  
   fortran_flags = ['-fixed', '-extend-source', '80']
 elif fc_id == 'gcc'
   fortran_flags = ['-ffixed-form', '-ffixed-line-length-80']
 else
-  fortran_flags = ['-ffixed-form', '-ffixed-line-length-80']  # Default to gfortran style
+  fortran_flags = ['-ffixed-form', '-ffixed-line-length-80']
 endif
 
 py3.extension_module('snopt',

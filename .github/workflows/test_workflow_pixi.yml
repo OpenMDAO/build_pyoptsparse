@@ -125,6 +125,7 @@ jobs:
         if: env.HAS_SNOPT_ACCESS == 'true'
         env:
           FC: ${{ runner.os == 'Windows' && 'ifx' || 'gfortran' }}
+          CC: ${{ runner.os == 'Windows' && 'cl' || 'gcc' }}
         run: |
           echo "============================================================="
           echo "Build SNOPT module with build_pyoptsparse"
