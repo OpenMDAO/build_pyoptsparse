@@ -151,17 +151,16 @@ jobs:
       - name: Test SNOPT module (Windows)
         if: env.HAS_SNOPT_ACCESS == 'true' && runner.os == 'Windows'
         shell: cmd
-        env:
-          FC: ifx
-          CC: cl
-          SNOPT_SRC_PATH: SNOPT/src
         run: |
           call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
+          set FC=ifx
+          set CC=cl
+          set SNOPT_SRC_PATH=SNOPT\src
 
           echo =============================================================
           echo Test that SNOPT module can be imported
           echo =============================================================
-          pixi run --frozen -e ${{ matrix.pixi-environment }} python -c "from pyoptsparse import SNOPT; print('SNOPT loaded successfully!')"
+          pixi run --frozen -e ${{ matrix.pixi-environment }} python -c "from pyoptsparse import OPT; OPT('SNOOPT'); print('SNOPT loaded successfully!')"
 
           echo =============================================================
           echo Test SNOPT optimization
