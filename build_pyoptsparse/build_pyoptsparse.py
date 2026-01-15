@@ -207,8 +207,14 @@ def process_command_line():
                               all environment variables.",
                         action="store_true",
                         default=opts['verbose'])
+    parser.add_argument("-y", "--ignore-dep",
+                        help="Ignore the message that running build_pyoptsparse as a script is deprecated.",
+                        action="store_true")
 
     args = parser.parse_args()
+
+    if not args.ignore_dep:
+        noisy_deprecation()
 
     # Update options with user selections
     opts['include_paropt'] = args.paropt
@@ -259,6 +265,21 @@ def process_command_line():
     opts['hsl_tar_file'] = args.hsl_tar_file
     opts['verbose'] = args.verbose
     opts['uninstall'] = args.uninstall
+
+def noisy_deprecation():
+    announce("This script is no longer supported.")
+    print("Users wanting to integrate SNOPT into pyoptsparse should\n"
+          "install pyoptsparse from conda-forge and then run")
+    print(code("python -m build_pyoptsparse.build_snopt_module /path/to/snopt/src"))
+    print()
+    print("This will build the necessary SNOPT library for pyoptsparse.")
+    user_input = ''
+    while user_input.lower() not in {"y", "n"}:
+        user_input = input("Continue anyway? y/N")
+        if user_input == "":
+            user_input = "n"
+        if user_input == "n":
+            exit(1)
 
 def announce(msg:str):
     """

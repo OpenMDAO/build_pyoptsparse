@@ -1,0 +1,33 @@
+[workspace]
+name = "build-pyoptsparse"
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "osx-64", "linux-64"]
+
+[dependencies]
+python = ">=3.10"
+ansicolors = "*"
+numpy = ">=2.0,!=2.4.0"
+packaging = "*"
+meson = "*"
+ninja = "*"
+pip = ">=25.3,<26"
+pyoptsparse = "*"
+compilers = ">=1.11.0,<2"
+
+[feature.py311.dependencies]
+python = "3.11.*"
+
+[feature.py312.dependencies]
+python = "3.12.*"
+
+[feature.py313.dependencies]
+python = "3.13.*"
+
+[feature.py314.dependencies]
+python = "3.14.*"
+
+[environments]
+default = ["py313"]
+py311 = ["py311"]
+py312 = ["py312"]
+py314 = ["py314"]
