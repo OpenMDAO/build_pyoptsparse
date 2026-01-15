@@ -303,7 +303,18 @@ snopt_source = custom_target('snoptmodule.c',
   command: [py3, '-m', 'numpy.f2py', '@INPUT@', '--lower', '--build-dir', '.']
 )
 
-# Build extension module
+fc = meson.get_compiler('fortran')
+fc_id = fc.get_id()
+
+# Set compiler-specific flags for fixed-form Fortran
+if fc_id == 'intel' or fc_id == 'intel-cl'
+  fortran_flags = ['-fixed', '-extend-source', '80']
+elif fc_id == 'gcc'
+  fortran_flags = ['-ffixed-form', '-ffixed-line-length-80']
+else
+  fortran_flags = ['-ffixed-form', '-ffixed-line-length-80']  # Default to gfortran style
+endif
+
 py3.extension_module('snopt',
   snopt_source,
   fortranobject_c,
@@ -311,7 +322,7 @@ py3.extension_module('snopt',
   include_directories: [inc_np, inc_f2py],
   dependencies: py3_dep,
   install: false,
-  fortran_args: '-ffixed-line-length-80'
+  fortran_args: fortran_flags
 )
 
 message('SNOPT module will be built')
