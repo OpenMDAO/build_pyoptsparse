@@ -154,6 +154,7 @@ jobs:
         env:
           FC: 'ifx'
           CC: 'cl'
+          SNOPT_SRC_PATH: "SNOPT/src"
         run: |
           Write-Host "============================================================="
           Write-Host "Test that SNOPT module can be imported"
