@@ -175,7 +175,7 @@ jobs:
           echo Test that SNOPT module can be imported
           echo =============================================================
           echo Attempting to load snopt.pyd with detailed error info
-          pixi run --frozen -e ${{ matrix.pixi-environment }} python -c "import sys; import os; os.add_dll_directory('C:\\Program Files (x86)\\Intel\\oneAPI\\compiler\\latest\\bin'); from pyoptsparse import OPT; opt = OPT('SNOPT'); print('Success!')"
+          pixi run --frozen -e ${{ matrix.pixi-environment }} python -c "from pyoptsparse import OPT; opt = OPT('SNOPT'); print('Success!')"
 
       # echo =============================================================
       # echo Test SNOPT optimization
