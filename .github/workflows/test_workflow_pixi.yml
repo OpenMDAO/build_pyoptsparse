@@ -160,7 +160,7 @@ jobs:
           echo =============================================================
           echo Test that SNOPT module can be imported
           echo =============================================================
-          pixi run --frozen -e ${{ matrix.pixi-environment }} python -c "from pyoptsparse import OPT; OPT('SNOOPT'); print('SNOPT loaded successfully!')"
+          pixi run --frozen -e ${{ matrix.pixi-environment }} python -c "from pyoptsparse import OPT; OPT('SNOPT'); print('SNOPT loaded successfully!')"
 
           echo =============================================================
           echo Test SNOPT optimization
