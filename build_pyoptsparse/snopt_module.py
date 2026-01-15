@@ -305,19 +305,25 @@ snopt_source = custom_target('snoptmodule.c',
 
 fc = meson.get_compiler('fortran')
 fc_id = fc.get_id()
+host_system = host_machine.system()
 
 # Set compiler-specific flags for fixed-form Fortran
-if fc_id == 'intel-cl'
+if host_system == 'windows' and (fc_id == 'intel' or fc_id == 'intel-cl')
   # Intel on Windows - use Windows-style flags
   fortran_flags = ['/fixed', '/extend-source:80']
-elif fc_id == 'intel'
-  # Intel on Linux/macOS - use Unix-style flags  
+elif fc_id == 'intel' or fc_id == 'intel-cl'
+  # Intel on Linux/macOS - use Unix-style flags
   fortran_flags = ['-fixed', '-extend-source', '80']
 elif fc_id == 'gcc'
   fortran_flags = ['-ffixed-form', '-ffixed-line-length-80']
 else
+  # Default to gfortran-style flags
   fortran_flags = ['-ffixed-form', '-ffixed-line-length-80']
 endif
+
+message('Fortran compiler ID: ' + fc_id)
+message('Host system: ' + host_system)
+message('Fortran flags: ' + ' '.join(fortran_flags))
 
 py3.extension_module('snopt',
   snopt_source,
