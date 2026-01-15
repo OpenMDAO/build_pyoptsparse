@@ -151,11 +151,10 @@ jobs:
       - name: Test SNOPT module (Windows)
         if: env.HAS_SNOPT_ACCESS == 'true' && runner.os == 'Windows'
         shell: pwsh
+        env:
+          FC: 'ifx'
+          CC: 'cl'
         run: |
-          $env:SNOPT_SRC_PATH = "SNOPT/src"
-          $env:FC = "ifx"
-          $env:CC = "cl"
-          
           Write-Host "============================================================="
           Write-Host "Test that SNOPT module can be imported"
           Write-Host "============================================================="
