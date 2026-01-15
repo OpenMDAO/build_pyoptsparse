@@ -96,11 +96,12 @@ jobs:
           echo "============================================================="
           pixi run --frozen -e ${{ matrix.pixi-environment }} pip install -e .
 
-      - name: Setup Intel Fortran Compiler (Windows)
-        if: runner.os == 'Windows'
-        uses: intel/setup-oneapi@v1
+      - uses: fortran-lang/setup-fortran@v1
+        id: setup-fortran
+        if: env.HAS_SNOPT_ACCESS == 'true' && runner.os == 'Windows'
         with:
-          components: ifx
+          compiler: intel
+          version: latest
 
       - name: Display environment
         run: |
