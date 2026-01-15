@@ -92,16 +92,11 @@ class TestSNOPTModule(unittest.TestCase):
         # Objective
         optProb.addObj("obj")
 
-        # Check optimization problem:
-        print(optProb)
-
         # Optimizer
         opt = OPT('SNOPT')
 
         # Solution
         sol = opt(optProb, sens=sens)
-
-        print(sol)
 
         self.assertEqual(sol.optInform.value, 1)
         assert_almost_equal(sol.fStar, 17.014, decimal=2)
