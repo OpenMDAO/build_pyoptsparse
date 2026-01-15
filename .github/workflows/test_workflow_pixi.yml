@@ -96,6 +96,12 @@ jobs:
           echo "============================================================="
           pixi run --frozen -e ${{ matrix.pixi-environment }} pip install -e .
 
+      - name: Setup Intel Fortran Compiler (Windows)
+        if: runner.os == 'Windows'
+        uses: intel/setup-oneapi@v1
+        with:
+          components: ifx
+
       - name: Display environment
         run: |
           echo "============================================================="
@@ -103,13 +109,6 @@ jobs:
           echo "============================================================="
           pixi info
           pixi list -e ${{ matrix.pixi-environment }}
-
-          echo "============================================================="
-          echo "Check Python, NumPy versions"
-          echo "============================================================="
-          pixi run --frozen -e ${{ matrix.pixi-environment }} python -c "import sys; print(f'Python: {sys.version}')"
-          pixi run --frozen -e ${{ matrix.pixi-environment }} python -c "import numpy; print(f'NumPy: {numpy.__version__}')"
-          pixi run --frozen -e ${{ matrix.pixi-environment }} python -c "import pyoptsparse; print(f'pyoptsparse: {pyoptsparse.__version__}')"
 
       - name: Copy SNOPT source files
         if: env.HAS_SNOPT_ACCESS == 'true'
