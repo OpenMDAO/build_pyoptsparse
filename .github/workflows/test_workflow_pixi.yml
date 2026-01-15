@@ -157,6 +157,20 @@ jobs:
           set CC=cl
           set SNOPT_SRC_PATH=SNOPT\src
 
+          echo Current PATH:
+          echo %PATH%
+          echo.
+          
+          echo Checking for Intel Fortran runtime DLLs:
+          where libifcoremd.dll
+          where libmmd.dll
+          where svml_dispmd.dll
+          echo.
+          
+          echo Checking dependencies of snopt.pyd:
+          pixi run --frozen -e ${{ matrix.pixi-environment }} python -c "import os; print(os.environ.get('PATH', 'PATH not set'))"
+          echo.
+
           echo =============================================================
           echo Test that SNOPT module can be imported
           echo =============================================================
