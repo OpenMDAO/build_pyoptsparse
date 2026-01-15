@@ -159,6 +159,21 @@ jobs:
           # Add Intel compiler libraries to PATH
           $env:PATH = "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\bin;$env:PATH"
 
+          # Check where SNOPT module was installed
+          Write-Host "Checking for SNOPT module installation..."
+          $pyoptPath = pixi run --frozen -e ${{ matrix.pixi-environment }} python -c "import pyoptsparse; print(pyoptsparse.__file__)"
+          Write-Host "pyoptsparse location: $pyoptPath"
+          
+          $snoptDir = Split-Path $pyoptPath | Join-Path -ChildPath "pySNOPT"
+          Write-Host "Expected SNOPT location: $snoptDir"
+          
+          if (Test-Path $snoptDir) {
+            Write-Host "Contents of pySNOPT directory:"
+            Get-ChildItem $snoptDir
+          } else {
+            Write-Host "pySNOPT directory not found!"
+          }
+
           Write-Host "============================================================="
           Write-Host "Test that SNOPT module can be imported"
           Write-Host "============================================================="
