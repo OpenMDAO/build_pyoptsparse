@@ -101,7 +101,7 @@ jobs:
         if: env.HAS_SNOPT_ACCESS == 'true' && runner.os == 'Windows'
         with:
           compiler: intel
-          version: latest
+          version: 2025.2
 
       - name: Display environment
         run: |
