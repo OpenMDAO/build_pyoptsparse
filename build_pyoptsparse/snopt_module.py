@@ -303,7 +303,28 @@ snopt_source = custom_target('snoptmodule.c',
   command: [py3, '-m', 'numpy.f2py', '@INPUT@', '--lower', '--build-dir', '.']
 )
 
-# Build extension module
+fc = meson.get_compiler('fortran')
+fc_id = fc.get_id()
+host_system = host_machine.system()
+
+# Set compiler-specific flags for fixed-form Fortran
+if host_system == 'windows' and (fc_id == 'intel' or fc_id == 'intel-cl' or fc_id == 'intel-llvm-cl')
+  # Intel on Windows - use Windows-style flags
+  fortran_flags = ['/fixed', '/extend-source:80', '/names:lowercase', '/assume:underscore']
+elif fc_id == 'intel' or fc_id == 'intel-cl'
+  # Intel on Linux/macOS - use Unix-style flags
+  fortran_flags = ['-fixed', '-extend-source', '80']
+elif fc_id == 'gcc'
+  fortran_flags = ['-ffixed-form', '-ffixed-line-length-80']
+else
+  # Default to gfortran-style flags
+  fortran_flags = ['-ffixed-form', '-ffixed-line-length-80']
+endif
+
+message('Fortran compiler ID: ' + fc_id)
+message('Host system: ' + host_system)
+message('Fortran flags: ' + ' '.join(fortran_flags))
+
 py3.extension_module('snopt',
   snopt_source,
   fortranobject_c,
@@ -311,7 +332,7 @@ py3.extension_module('snopt',
   include_directories: [inc_np, inc_f2py],
   dependencies: py3_dep,
   install: false,
-  fortran_args: '-ffixed-line-length-80'
+  fortran_args: fortran_flags
 )
 
 message('SNOPT module will be built')
@@ -396,6 +417,64 @@ def find_built_module(build_dir):
 
     return None
 
+def copy_intel_runtime_dlls(output_dir):
+    """Copy Intel Fortran runtime DLLs to output directory on Windows."""
+    # Intel runtime DLLs needed by ifx-compiled code
+    required_dlls = [
+        'libifcoremd.dll',
+        'libmmd.dll', 
+        'svml_dispmd.dll',
+        'libiompstubs5md.dll',
+    ]
+    
+    # Find Intel compiler bin directory from PATH or known locations
+    intel_bin_dir = None
+    
+    # Check PATH first
+    path_dirs = os.environ.get('PATH', '').split(os.pathsep)
+    for path_dir in path_dirs:
+        if 'Intel' in path_dir and 'compiler' in path_dir and 'bin' in path_dir:
+            test_path = Path(path_dir)
+            if test_path.exists() and (test_path / 'libifcoremd.dll').exists():
+                intel_bin_dir = test_path
+                break
+    
+    # Fallback to known locations
+    if not intel_bin_dir:
+        known_paths = [
+            Path(r"C:\Program Files (x86)\Intel\oneAPI\compiler\latest\bin"),
+            Path(r"C:\Program Files (x86)\Intel\oneAPI\compiler\2025.2\bin"),
+            Path(r"C:\Program Files (x86)\Intel\oneAPI\compiler\2024.2\bin"),
+        ]
+        for path in known_paths:
+            if path.exists() and (path / 'libifcoremd.dll').exists():
+                intel_bin_dir = path
+                break
+    
+    if not intel_bin_dir:
+        print("\nWarning: Could not find Intel runtime DLLs.")
+        print("The SNOPT module may not work unless Intel oneAPI is in the system PATH.")
+        return
+    
+    print(f"\nCopying Intel runtime DLLs from {intel_bin_dir}")
+    copied = []
+    for dll in required_dlls:
+        src = intel_bin_dir / dll
+        if src.exists():
+            dest = output_dir / dll
+            try:
+                shutil.copy2(src, dest)
+                copied.append(dll)
+                print(f"  Copied {dll}")
+            except Exception as e:
+                print(f"  Warning: Could not copy {dll}: {e}")
+    
+    if copied:
+        print(f"\nSuccessfully copied {len(copied)} Intel runtime DLLs")
+        print("SNOPT module should now work without requiring Intel oneAPI in PATH")
+    else:
+        print("\nWarning: No Intel runtime DLLs were copied")
+
 
 def install_module(module_path, output_dir):
     """Copy the built module to the output directory."""
@@ -404,6 +483,12 @@ def install_module(module_path, output_dir):
 
     dest_file = output_path / module_path.name
     shutil.copy2(module_path, dest_file)
+
+    # On Windows with Intel compiler, copy runtime DLLs next to the .pyd
+    if platform.system() == 'Windows':
+        fc_compiler = os.environ.get('FC', '').lower()
+        if 'ifx' in fc_compiler or 'ifort' in fc_compiler:
+            copy_intel_runtime_dlls(output_path)
 
     print(f"\nInstalled SNOPT module to: {dest_file}")
     return dest_file
