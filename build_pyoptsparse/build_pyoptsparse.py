@@ -271,15 +271,7 @@ def noisy_deprecation():
     print("Users wanting to integrate SNOPT into pyoptsparse should\n"
           "install pyoptsparse from conda-forge and then run")
     print(code("python -m build_pyoptsparse.build_snopt_module /path/to/snopt/src"))
-    print()
-    print("This will build the necessary SNOPT library for pyoptsparse.")
-    user_input = ''
-    while user_input.lower() not in {"y", "n"}:
-        user_input = input("Continue anyway? y/N")
-        if user_input == "":
-            user_input = "n"
-        if user_input == "n":
-            exit(1)
+    print("\nThis will build the necessary SNOPT library for pyoptsparse.\n")
 
 def announce(msg:str):
     """

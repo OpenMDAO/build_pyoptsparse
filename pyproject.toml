@@ -27,6 +27,10 @@ paropt = [
     "mpi4py",
 ]
 
+[project.scripts]
+build-pyoptsparse = "build_pyoptsparse.build_pyoptsparse:perform_install"
+build_pyoptsparse = "build_pyoptsparsebuild_pyoptsparse:perform_install"
+
 [project.urls]
 Homepage = "http://openmdao.org"
 
