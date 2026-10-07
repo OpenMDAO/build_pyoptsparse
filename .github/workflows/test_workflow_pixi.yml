@@ -96,13 +96,6 @@ jobs:
           echo "============================================================="
           pixi run --frozen -e ${{ matrix.pixi-environment }} pip install -e .
 
-      - uses: fortran-lang/setup-fortran@v1
-        id: setup-fortran
-        if: env.HAS_SNOPT_ACCESS == 'true' && runner.os == 'Windows'
-        with:
-          compiler: intel
-          version: 2025.2
-
       - name: Display environment
         run: |
           echo "============================================================="

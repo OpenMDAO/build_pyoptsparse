@@ -34,6 +34,9 @@ compilers = ">=1.11.0,<2"
 [target.osx-arm64.dependencies]
 compilers = ">=1.11.0,<2"
 
+[target.win-64.dependencies]
+ifx_win-64 = "*"
+
 [environments]
 default = ["py313"]
 py311 = ["py311"]
