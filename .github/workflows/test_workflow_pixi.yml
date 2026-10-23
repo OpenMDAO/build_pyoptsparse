@@ -114,9 +114,9 @@ jobs:
           echo "============================================================="
           mkdir -p SNOPT/src
           gpg --batch --yes --pinentry-mode loopback \
-            --passphrase "$SNOPT_SRC_GPG_PASSPHRASE" \
+            --passphrase-fd 0 \
             -o SNOPT/snopt_src.tar.xz \
-            -d _actions_support/snopt/snopt_src.tar.xz.gpg
+            -d _actions_support/snopt/snopt_src.tar.xz.gpg <<< "$SNOPT_SRC_GPG_PASSPHRASE"
           tar -xJf SNOPT/snopt_src.tar.xz -C SNOPT/src --strip-components=1
           rm -f SNOPT/snopt_src.tar.xz
           ls -la SNOPT/src
