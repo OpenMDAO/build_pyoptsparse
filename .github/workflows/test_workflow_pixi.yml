@@ -54,7 +54,7 @@ jobs:
     name: ${{ matrix.os }} / Python ${{ matrix.pixi-environment }}
 
     env:
-      HAS_SNOPT_ACCESS: ${{ secrets.SSH_PRIVATE_KEY != '' && secrets.SNOPT_LOCATION_77 != '' }}
+      HAS_SNOPT_ACCESS: ${{ secrets.OPENMDAO_ACTIONS_SUPPORT_DEPLOY_KEY != '' && secrets.SNOPT_SRC_GPG_PASSPHRASE != '' }}
 
     steps:
       - name: Display run details
@@ -69,22 +69,22 @@ jobs:
           echo "Pixi environment: ${{ matrix.pixi-environment }}"
           echo "============================================================="
 
-      - name: Create SSH key for SNOPT
-        if: env.HAS_SNOPT_ACCESS == 'true'
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
-        run: |
-          mkdir -p ~/.ssh/
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+
+      # SNOPT source is proprietary and lives gpg-encrypted in the private
+      # OpenMDAO/_openmdao_actions_support repo, checked out here read-only via a
+      # deploy key. See that repo's README for details on the secrets involved.
+      - name: Checkout SNOPT source support repo
+        if: env.HAS_SNOPT_ACCESS == 'true'
+        uses: actions/checkout@v7
+        with:
+          repository: OpenMDAO/_openmdao_actions_support
+          ssh-key: ${{ secrets.OPENMDAO_ACTIONS_SUPPORT_DEPLOY_KEY }}
+          path: _actions_support
 
       - name: Setup Pixi
-        uses: prefix-dev/setup-pixi@v0.8.1
+        uses: prefix-dev/setup-pixi@v0.11.2
         with:
           cache: false
           environments: ${{ matrix.pixi-environment }}
@@ -104,14 +104,21 @@ jobs:
           pixi info
           pixi list -e ${{ matrix.pixi-environment }}
 
-      - name: Copy SNOPT source files
+      - name: Decrypt SNOPT source files
         if: env.HAS_SNOPT_ACCESS == 'true'
+        env:
+          SNOPT_SRC_GPG_PASSPHRASE: ${{ secrets.SNOPT_SRC_GPG_PASSPHRASE }}
         run: |
           echo "============================================================="
-          echo "Copying SNOPT 7.7 source files via SSH"
+          echo "Decrypting SNOPT 7.7 source files from _openmdao_actions_support"
           echo "============================================================="
-          mkdir -p SNOPT
-          scp -qr ${{ secrets.SNOPT_LOCATION_77 }} SNOPT
+          mkdir -p SNOPT/src
+          gpg --batch --yes --pinentry-mode loopback \
+            --passphrase "$SNOPT_SRC_GPG_PASSPHRASE" \
+            -o SNOPT/snopt_src.tar.xz \
+            -d _actions_support/snopt/snopt_src.tar.xz.gpg
+          tar -xJf SNOPT/snopt_src.tar.xz -C SNOPT/src --strip-components=1
+          rm -f SNOPT/snopt_src.tar.xz
           ls -la SNOPT/src
 
       - name: Build SNOPT module
@@ -170,7 +177,7 @@ jobs:
           limit-access-to-actor: true
 
       - name: Notify slack on failure
-        uses: act10ns/slack@v2.0.0
+        uses: act10ns/slack@v2.2.0
         with:
           webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
           status: ${{ job.status }}

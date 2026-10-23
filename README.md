@@ -28,6 +28,8 @@ or
 python -m build_pyoptsparse.snopt_module --snopt-lib /path/to/libsnopt7.so
 ```
 
+**Important:** this script locates its install target by importing `pyoptsparse` and reading `pyoptsparse.__file__`, then installs the built module into that package's `pySNOPT` directory by default. This means `pyoptsparse` must be installed and importable in whichever Python environment you run the command from — if you run it from a different environment than the one where you installed `pyoptsparse` in step 2, the build will either fail to find `pyoptsparse` or install the module into the wrong environment.
+
 For now, the existing `python -m build_pyoptsparse` command remains but issues a noisy deprecation warning by default, with an option to bypass it using `python -m build_pyoptsparse --ignore-dep`.
 
 ## Building the SNOPT module on Windows

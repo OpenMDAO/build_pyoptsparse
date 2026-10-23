@@ -182,7 +182,7 @@ jobs:
 
       - name: Exit if this job was not selected
         if: github.event_name == 'workflow_dispatch' &&  inputs.job_name != '' &&  inputs.job_name != matrix.NAME
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: core.setFailed('The ${{ matrix.NAME }} job was not included in the run, exiting...');
 
@@ -198,10 +198,10 @@ jobs:
           echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup conda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniconda-version: latest
           python-version: ${{ matrix.PY }}
@@ -437,7 +437,7 @@ jobs:
 
       - name: Slack audit warnings
         if: steps.audit.outcome == 'failure' && matrix.NAME != 'Ubuntu Oldest'
-        uses: act10ns/slack@v2.0.0
+        uses: act10ns/slack@v2.2.0
         with:
           webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
           status: 'warning'
@@ -446,7 +446,7 @@ jobs:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: Notify slack
-        uses: act10ns/slack@v2.0.0
+        uses: act10ns/slack@v2.2.0
         with:
           webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
           status: ${{ job.status }}
