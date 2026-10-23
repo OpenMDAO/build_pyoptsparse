@@ -365,7 +365,9 @@ def build_with_meson(build_dir):
             cwd=build_path,
             check=True,
             capture_output=True,
-            text=True
+            text=True,
+            encoding="utf-8",
+            errors="replace"
         )
         print(result.stdout)
         if result.stderr:
@@ -378,7 +380,9 @@ def build_with_meson(build_dir):
             cwd=build_path,
             check=True,
             capture_output=True,
-            text=True
+            text=True,
+            encoding="utf-8",
+            errors="replace"
         )
         print(result.stdout)
         if result.stderr:
